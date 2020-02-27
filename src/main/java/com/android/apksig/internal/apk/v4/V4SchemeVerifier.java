@@ -37,9 +37,10 @@ import com.android.apksig.internal.pkcs7.SignedData;
 import com.android.apksig.internal.pkcs7.SignerInfo;
 import com.android.apksig.internal.util.ByteBufferUtils;
 import com.android.apksig.internal.util.Pair;
-import com.android.apksig.proto.V4.V4Signature;
 import com.android.apksig.util.DataSource;
 
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -59,7 +60,7 @@ import java.util.Map;
 /**
  * APK Signature Scheme V4 verifier.
  *
- * Verifies the serialized V4Signature protobuf against an APK.
+ * Verifies the serialized V4Signature file against an APK.
  */
 public abstract class V4SchemeVerifier {
     /** Hidden constructor to prevent instantiation. */
@@ -69,41 +70,60 @@ public abstract class V4SchemeVerifier {
     /**
      * <p>
      * The main goals of the verifier are:
-     * 1) parse V4Signature protobuf fields
+     * 1) parse V4Signature file fields
      * 2) verifies the PKCS7 signature block against the raw root hash bytes in the proto field
      * 3) verifies that the raw root hash matches with the actual hash tree root of the give APK
-     * 4) if the protobuf contains a verity tree, verifies that it matches with the actual verity
+     * 4) if the file contains a verity tree, verifies that it matches with the actual verity
      * tree computed from the given APK.
      * </p>
      */
     public static ApkSigningBlockUtils.Result verify(DataSource apk, File v4SignatureFile)
             throws IOException, NoSuchAlgorithmException {
-        final FileInputStream fileInput = new FileInputStream(v4SignatureFile);
-        final V4Signature proto = V4Signature.parseFrom(fileInput);
+
+        V4Signature signature = null;
+        byte[] tree = null;
+        try (final DataInputStream input = new DataInputStream(
+                new FileInputStream(v4SignatureFile))) {
+            signature = V4Signature.readFrom(input);
+            tree = V4Signature.readBytes(input);
+        } catch (EOFException e) {
+        }
+
         final ApkSigningBlockUtils.Result result = new ApkSigningBlockUtils.Result(
                 ApkSigningBlockUtils.VERSION_APK_SIGNATURE_SCHEME_V4);
 
-        final byte[] pkcs7Signature = proto.getPkcs7SignatureBlock().toByteArray();
+        if (signature == null) {
+            result.addError(Issue.V4_SIG_NO_SIGNATURES,
+                    "Signature file does not contain a v4 signature.");
+            return result;
+        }
+
+        if (signature.version != V4Signature.CURRENT_VERSION) {
+            result.addWarning(Issue.V4_SIG_VERSION_NOT_CURRENT, signature.version,
+                    V4Signature.CURRENT_VERSION);
+        }
+
+        final byte[] pkcs7Signature = signature.pkcs7SignatureBlock;
         final ByteBuffer pkcs7SignatureBlock =
                 ByteBuffer.wrap(pkcs7Signature).order(ByteOrder.LITTLE_ENDIAN);
+        final ByteBuffer verityRootHash = ByteBuffer.wrap(signature.verityRootHash);
+        final ByteBuffer v3Digest = ByteBuffer.wrap(signature.v3Digest);
 
-        final ByteBuffer verityRootHash = ByteBuffer.wrap(proto.getVerityRootHash().toByteArray());
-
-        result.signers.add(parseAndVerifySignatureBlock(pkcs7SignatureBlock, verityRootHash));
+        result.signers.add(parseAndVerifySignatureBlock(
+                pkcs7SignatureBlock, verityRootHash, v3Digest));
         if (result.containsErrors()) {
             return result;
         }
 
-        verifyRootHashAndTree(apk, result, proto.getVerityRootHash().toByteArray(),
-                proto.getVerityTree().toByteArray());
+        verifyRootHashAndTree(apk, result, signature.verityRootHash, tree);
         if (!result.containsErrors()) {
             result.verified = true;
         }
-        // Add v3Content digest from the protobuf to the result
+        // Add v3Content digest from the file to the result
         result.signers.get(0).contentDigests.add(
                 new ApkSigningBlockUtils.Result.SignerInfo.ContentDigest(
                         0 /* signature algorithm id doesn't matter here */,
-                        proto.getV3Digest().toByteArray()));
+                        signature.v3Digest));
         return result;
     }
 
@@ -116,7 +136,7 @@ public abstract class V4SchemeVerifier {
      */
     private static ApkSigningBlockUtils.Result.SignerInfo parseAndVerifySignatureBlock(
             ByteBuffer pkcs7SignatureBlock,
-            ByteBuffer verityRootHash) {
+            ByteBuffer verityRootHash, ByteBuffer v3Digest) {
         final ApkSigningBlockUtils.Result.SignerInfo result =
                 new ApkSigningBlockUtils.Result.SignerInfo();
         SignedData signedData;
@@ -144,15 +164,25 @@ public abstract class V4SchemeVerifier {
             result.addError(Issue.V4_SIG_MULTIPLE_SIGNERS);
             return result;
         }
+
+        ByteBuffer attachedData = signedData.encapContentInfo.content;
+        byte[] rootHashInAttachedData = new byte[verityRootHash.array().length];
+        attachedData.get(rootHashInAttachedData);
         // Embedded root hash should be equal to the external one
-        ByteBuffer embeddedRootHash = signedData.encapContentInfo.content;
-        if (!embeddedRootHash.equals(verityRootHash)) {
-            result.addError(Issue.V4_SIG_ROOT_HASH_MISMATCH_BETWEEN_ATTACHED_DATA_AND_PROTO);
+        if (!Arrays.equals(rootHashInAttachedData, verityRootHash.array())) {
+            result.addError(Issue.V4_SIG_ROOT_HASH_MISMATCH_WITH_ATTACHED_DATA);
             return result;
         }
+        byte[] v3digestInAttachedData = new byte[v3Digest.array().length];
+        attachedData.get(v3digestInAttachedData);
+        // Embedded root hash should be equal to the external one
+        if (!Arrays.equals(v3digestInAttachedData, v3Digest.array())) {
+            result.addError(Issue.V4_SIG_V3_DIGEST_MISMATCH_WITH_ATTACHED_DATA);
+            return result;
+        }
+        attachedData.flip();
 
         SignerInfo unverifiedSignerInfo = signedData.signerInfos.get(0);
-
         List<X509Certificate> signedDataCertificates;
         try {
             signedDataCertificates = parseCertificates(signedData.certificates);
@@ -162,7 +192,7 @@ public abstract class V4SchemeVerifier {
         }
 
         // Verify SignerInfo
-        verifySignerInfo(signedDataCertificates, unverifiedSignerInfo, verityRootHash, result);
+        verifySignerInfo(signedDataCertificates, unverifiedSignerInfo, attachedData, result);
         return result;
     }
 
