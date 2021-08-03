@@ -75,6 +75,9 @@ filegroup(
         "src/main/**/*.java",
         "src/main/**/*.kt",
         "src/main/resources/**",
-    ]) + ["android_plugin_for_gradle.gradle"],
+    ]) + [
+        "android_plugin_for_gradle.gradle",
+        "LICENSE",
+    ],
     visibility = ["//tools/base/build-system:__pkg__"],
 )
