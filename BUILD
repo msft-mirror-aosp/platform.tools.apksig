@@ -65,7 +65,7 @@ coverage_java_test(
     test_class = "com.android.apksig.AllTests",
     deps = [
         ":apksig-all",
-        "//tools/base/third_party:junit_junit",
+        "@maven//:junit.junit",
     ],
 )
 
