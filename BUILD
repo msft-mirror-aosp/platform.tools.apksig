@@ -20,8 +20,11 @@ coverage_java_library(
 coverage_java_library(
     name = "apksig-all",
     srcs = glob(["src/main/java/**/*.java"]),
-    resource_strip_prefix = "tools/apksig",
-    resources = ["LICENSE"],
+    visibility = [":apksig-private-api-clients"],
+)
+
+exports_files(
+    ["LICENSE"],
     visibility = [":apksig-private-api-clients"],
 )
 
@@ -67,17 +70,4 @@ coverage_java_test(
         ":apksig-all",
         "@maven//:junit.junit",
     ],
-)
-
-filegroup(
-    name = "agp_gradle_build_files",
-    srcs = glob([
-        "src/main/**/*.java",
-        "src/main/**/*.kt",
-        "src/main/resources/**",
-    ]) + [
-        "android_plugin_for_gradle.gradle",
-        "LICENSE",
-    ],
-    visibility = ["//tools/base/build-system:__pkg__"],
 )
