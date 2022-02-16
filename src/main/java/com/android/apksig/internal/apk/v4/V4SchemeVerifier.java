@@ -90,37 +90,20 @@ public abstract class V4SchemeVerifier {
 
         V4Signature.HashingInfo hashingInfo = V4Signature.HashingInfo.fromByteArray(
                 signature.hashingInfo);
+        V4Signature.SigningInfo signingInfo = V4Signature.SigningInfo.fromByteArray(
+                signature.signingInfo);
 
-        V4Signature.SigningInfos signingInfos = V4Signature.SigningInfos.fromByteArray(
-                signature.signingInfos);
+        final byte[] signedData = V4Signature.getSignedData(apk.size(), hashingInfo, signingInfo);
 
-        final ApkSigningBlockUtils.Result.SignerInfo signerInfo;
-
-        // Verify the primary signature over signedData.
-        {
-            V4Signature.SigningInfo signingInfo = signingInfos.signingInfo;
-            final byte[] signedData = V4Signature.getSignedData(apk.size(), hashingInfo,
-                    signingInfo);
-            signerInfo = parseAndVerifySignatureBlock(signingInfo, signedData);
-            result.signers.add(signerInfo);
-            if (result.containsErrors()) {
-                return result;
-            }
+        // First, verify the signature over signedData.
+        ApkSigningBlockUtils.Result.SignerInfo signerInfo = parseAndVerifySignatureBlock(
+                signingInfo, signedData);
+        result.signers.add(signerInfo);
+        if (result.containsErrors()) {
+            return result;
         }
 
-        // Verify all subsequent signatures.
-        for (V4Signature.SigningInfoBlock signingInfoBlock : signingInfos.signingInfoBlocks) {
-            V4Signature.SigningInfo signingInfo = V4Signature.SigningInfo.fromByteArray(
-                    signingInfoBlock.signingInfo);
-            final byte[] signedData = V4Signature.getSignedData(apk.size(), hashingInfo,
-                    signingInfo);
-            result.signers.add(parseAndVerifySignatureBlock(signingInfo, signedData));
-            if (result.containsErrors()) {
-                return result;
-            }
-        }
-
-        // Check if the root hash and the tree are correct.
+        // Second, check if the root hash and the tree are correct.
         verifyRootHashAndTree(apk, signerInfo, hashingInfo.rawRootHash, tree);
         if (!result.containsErrors()) {
             result.verified = true;
