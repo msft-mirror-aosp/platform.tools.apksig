@@ -16,12 +16,7 @@
 
 package com.android.apksig;
 
-import static com.android.apksig.ApkSignerTest.FIRST_RSA_2048_SIGNER_RESOURCE_NAME;
-import static com.android.apksig.ApkSignerTest.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
-import static com.android.apksig.ApkSignerTest.assertResultContainsSigners;
-import static com.android.apksig.ApkSignerTest.assertV31SignerTargetsMinApiLevel;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNoException;
@@ -30,13 +25,11 @@ import com.android.apksig.ApkVerifier.Issue;
 import com.android.apksig.ApkVerifier.IssueWithParams;
 import com.android.apksig.ApkVerifier.Result.SourceStampInfo.SourceStampVerificationStatus;
 import com.android.apksig.apk.ApkFormatException;
-import com.android.apksig.internal.apk.v3.V3SchemeConstants;
 import com.android.apksig.internal.util.AndroidSdkVersion;
 import com.android.apksig.internal.util.HexEncoding;
 import com.android.apksig.internal.util.Resources;
 import com.android.apksig.util.DataSources;
 
-import java.security.Provider;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -1337,148 +1330,6 @@ public class ApkVerifierTest {
         }
     }
 
-    @Test
-    public void verifySignature_negativeModulusConscryptProvider() throws Exception {
-        Provider conscryptProvider = null;
-        try {
-            conscryptProvider = new org.conscrypt.OpenSSLProvider();
-            Security.insertProviderAt(conscryptProvider, 1);
-            assertVerified(verify("v1v2v3-rsa-2048-negmod-in-cert.apk"));
-        } catch (UnsatisfiedLinkError e) {
-            // If the library for conscrypt is not available then skip this test.
-            return;
-        } finally {
-            if (conscryptProvider != null) {
-                Security.removeProvider(conscryptProvider.getName());
-            }
-        }
-    }
-
-    @Test
-    public void verifyV31_rotationTarget34_containsExpectedSigners() throws Exception {
-        // This test verifies an APK targeting a specific SDK version for rotation properly reports
-        // that version for the rotated signer in the v3.1 block, and all other signing blocks
-        // use the original signing key.
-        ApkVerifier.Result result = verify("v31-rsa-2048_2-tgt-34-1-tgt-28.apk");
-
-        assertVerified(result);
-        assertResultContainsSigners(result, true, FIRST_RSA_2048_SIGNER_RESOURCE_NAME,
-            SECOND_RSA_2048_SIGNER_RESOURCE_NAME);
-        assertV31SignerTargetsMinApiLevel(result, SECOND_RSA_2048_SIGNER_RESOURCE_NAME, 34);
-    }
-
-    @Test
-    public void verifyV31_missingStrippingAttr_warningReported() throws Exception {
-        // The v3.1 signing block supports targeting SDK versions; to protect against these target
-        // versions being modified the v3 signer contains a stripping protection attribute with the
-        // SDK version on which rotation should be applied. This test verifies a warning is reported
-        // when this attribute is not present in the v3 signer.
-        ApkVerifier.Result result = verify("v31-tgt-33-no-v3-attr.apk");
-
-        assertVerificationWarning(result, Issue.V31_ROTATION_MIN_SDK_ATTR_MISSING);
-    }
-
-    @Test
-    public void verifyV31_strippingAttrMismatch_errorReportedOnSupportedVersions()
-            throws Exception {
-        // This test verifies if the stripping protection attribute does not properly match the
-        // minimum SDK version on which rotation is supported then the APK should fail verification.
-        ApkVerifier.Result result = verify("v31-tgt-34-v3-attr-value-33.apk");
-        assertVerificationFailure(result, Issue.V31_ROTATION_MIN_SDK_MISMATCH);
-
-        // SDK versions that do not support v3.1 should ignore the stripping protection attribute
-        // and the v3.1 signing block.
-        result = verifyForMaxSdkVersion("v31-tgt-34-v3-attr-value-33.apk",
-            V3SchemeConstants.MIN_SDK_WITH_V31_SUPPORT - 1);
-        assertVerified(result);
-    }
-
-    @Test
-    public void verifyV31_missingV31Block_errorReportedOnSupportedVersions() throws Exception {
-        // This test verifies if the stripping protection attribute contains a value for rotation
-        // but a v3.1 signing block was not found then the APK should fail verification.
-        ApkVerifier.Result result = verify("v31-block-stripped-v3-attr-value-33.apk");
-        assertVerificationFailure(result, Issue.V31_BLOCK_MISSING);
-
-        // SDK versions that do not support v3.1 should ignore the stripping protection attribute
-        // and the v3.1 signing block.
-        result = verifyForMaxSdkVersion("v31-block-stripped-v3-attr-value-33.apk",
-            V3SchemeConstants.MIN_SDK_WITH_V31_SUPPORT - 1);
-        assertVerified(result);
-    }
-
-    @Test
-    public void verifyV31_v31BlockWithoutV3Block_reportsError() throws Exception {
-        // A v3.1 block must always exist alongside a v3.0 block; if an APK's minSdkVersion is the
-        // same as the version supporting rotation then it should be written to a v3.0 block.
-        ApkVerifier.Result result = verify("v31-tgt-33-no-v3-block.apk");
-        assertVerificationFailure(result, Issue.V31_BLOCK_FOUND_WITHOUT_V3_BLOCK);
-    }
-
-    @Test
-    public void verifyV31_rotationTargetsDevRelease_resultReportsDevReleaseFlag() throws Exception {
-        // Development releases use the SDK version of the previous release until the SDK is
-        // finalized. In order to only target the development release and later, the v3.1 signature
-        // scheme supports targeting development releases such that the SDK version X will install
-        // on a device running X with the system property ro.build.version.codename set to a new
-        // development codename (eg T); a release platform will have this set to "REL", and the
-        // platform will ignore the v3.1 signer if the minSdkVersion is X and the codename is "REL".
-        ApkVerifier.Result result = verify("v31-rsa-2048_2-tgt-34-dev-release.apk");
-
-        assertVerified(result);
-        assertV31SignerTargetsMinApiLevel(result, SECOND_RSA_2048_SIGNER_RESOURCE_NAME, 34);
-        assertResultContainsSigners(result, true, FIRST_RSA_2048_SIGNER_RESOURCE_NAME,
-                SECOND_RSA_2048_SIGNER_RESOURCE_NAME);
-    }
-
-    @Test
-    public void verifyV3_v3RotatedSignerTargetsDevRelease_warningReported() throws Exception {
-        // While a v3.1 signer can target a development release, v3.0 does not support the same
-        // attribute since it is only intended for v3.1 with v3.0 using the original signer. This
-        // test verifies a warning is reported if an APK has this flag set on a v3.0 signer since it
-        // will be ignored by the platform.
-        ApkVerifier.Result result = verify("v3-rsa-2048_2-tgt-dev-release.apk");
-
-        assertVerificationWarning(result, Issue.V31_ROTATION_TARGETS_DEV_RELEASE_ATTR_ON_V3_SIGNER);
-    }
-
-    @Test
-    public void verifyV31_rotationTargets34_resultContainsExpectedLineage() throws Exception {
-        // During verification of the v3.1 and v3.0 signing blocks, ApkVerifier will set the
-        // signing certificate lineage in the Result object; this test verifies a null lineage from
-        // a v3.0 signer does not overwrite a valid lineage from a v3.1 signer.
-        ApkVerifier.Result result = verify("v31-rsa-2048_2-tgt-34-1-tgt-28.apk");
-
-        assertNotNull(result.getSigningCertificateLineage());
-        SigningCertificateLineageTest.assertLineageContainsExpectedSigners(
-                result.getSigningCertificateLineage(), FIRST_RSA_2048_SIGNER_RESOURCE_NAME,
-                SECOND_RSA_2048_SIGNER_RESOURCE_NAME);
-    }
-
-    @Test
-    public void verify31_minSdkVersionT_resultSuccessfullyVerified() throws Exception {
-        // When a min-sdk-version of 33 is explicitly specified, apksig will behave the same as a
-        // device running this API level and only verify a v3.1 signature if it exists. This test
-        // verifies this v3.1 signature is sufficient to report the APK as verified.
-        ApkVerifier.Result result = verifyForMinSdkVersion("v31-rsa-2048_2-tgt-33-1-tgt-28.apk",
-                33);
-
-        assertVerified(result);
-        assertTrue(result.isVerifiedUsingV31Scheme());
-    }
-
-    @Test
-    public void verify31_minSdkVersionTTargetSdk30_resultSuccessfullyVerified() throws Exception {
-        // This test verifies when a min-sdk-version of 33 is specified and the APK targets API
-        // level 30 or later, the v3.1 signature is sufficient to report the APK meets the
-        // requirement of a minimum v2 signature.
-        ApkVerifier.Result result = verifyForMinSdkVersion(
-                "v31-ec-p256-2-tgt-33-1-tgt-28-targetSdk-30.apk", 33);
-
-        assertVerified(result);
-        assertTrue(result.isVerifiedUsingV31Scheme());
-    }
-
     private ApkVerifier.Result verify(String apkFilenameInResources)
             throws IOException, ApkFormatException, NoSuchAlgorithmException {
         return verify(apkFilenameInResources, null, null);
@@ -1617,27 +1468,13 @@ public class ApkVerifierTest {
     }
 
     static void assertVerificationFailure(ApkVerifier.Result result, Issue expectedIssue) {
-        assertVerificationIssue(result, expectedIssue, true);
-    }
-
-    static void assertVerificationWarning(ApkVerifier.Result result, Issue expectedIssue) {
-        assertVerificationIssue(result, expectedIssue, false);
-    }
-
-    /**
-     * Asserts the provided {@code result} contains the {@code expectedIssue}; if {@code
-     * verifyError} is set to {@code true} then the specified {@link Issue} will be expected as an
-     * error, otherwise it will be expected as a warning.
-     */
-    private static void assertVerificationIssue(ApkVerifier.Result result, Issue expectedIssue,
-        boolean verifyError) {
-        if (result.isVerified() && verifyError) {
+        if (result.isVerified()) {
             fail("APK verification succeeded instead of failing with " + expectedIssue);
             return;
         }
 
         StringBuilder msg = new StringBuilder();
-        for (IssueWithParams issue : (verifyError ? result.getErrors() : result.getWarnings())) {
+        for (IssueWithParams issue : result.getErrors()) {
             if (expectedIssue.equals(issue.getIssue())) {
                 return;
             }
@@ -1648,8 +1485,7 @@ public class ApkVerifierTest {
         }
         for (ApkVerifier.Result.V1SchemeSignerInfo signer : result.getV1SchemeSigners()) {
             String signerName = signer.getName();
-            for (ApkVerifier.IssueWithParams issue : (verifyError ? signer.getErrors()
-                    : signer.getWarnings())) {
+            for (ApkVerifier.IssueWithParams issue : signer.getErrors()) {
                 if (expectedIssue.equals(issue.getIssue())) {
                     return;
                 }
@@ -1666,8 +1502,7 @@ public class ApkVerifierTest {
         }
         for (ApkVerifier.Result.V2SchemeSignerInfo signer : result.getV2SchemeSigners()) {
             String signerName = "signer #" + (signer.getIndex() + 1);
-            for (IssueWithParams issue : (verifyError ? signer.getErrors()
-                    : signer.getWarnings())) {
+            for (IssueWithParams issue : signer.getErrors()) {
                 if (expectedIssue.equals(issue.getIssue())) {
                     return;
                 }
@@ -1682,8 +1517,7 @@ public class ApkVerifierTest {
         }
         for (ApkVerifier.Result.V3SchemeSignerInfo signer : result.getV3SchemeSigners()) {
             String signerName = "signer #" + (signer.getIndex() + 1);
-            for (IssueWithParams issue : (verifyError ? signer.getErrors()
-                    : signer.getWarnings())) {
+            for (IssueWithParams issue : signer.getErrors()) {
                 if (expectedIssue.equals(issue.getIssue())) {
                     return;
                 }
@@ -1694,22 +1528,6 @@ public class ApkVerifierTest {
                         .append(signerName)
                         .append(": ")
                         .append(issue);
-            }
-        }
-        for (ApkVerifier.Result.V3SchemeSignerInfo signer : result.getV31SchemeSigners()) {
-            String signerName = "signer #" + (signer.getIndex() + 1);
-            for (IssueWithParams issue : (verifyError ? signer.getErrors()
-                : signer.getWarnings())) {
-                if (expectedIssue.equals(issue.getIssue())) {
-                    return;
-                }
-                if (msg.length() > 0) {
-                    msg.append('\n');
-                }
-                msg.append("APK Signature Scheme v3.1 signer ")
-                    .append(signerName)
-                    .append(": ")
-                    .append(issue);
             }
         }
 
