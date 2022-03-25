@@ -22,6 +22,7 @@ import com.android.apksig.SigningCertificateLineage;
 import com.android.apksig.SigningCertificateLineage.SignerCapabilities;
 import com.android.apksig.apk.ApkFormatException;
 import com.android.apksig.apk.MinSdkVersionException;
+import com.android.apksig.internal.apk.v3.V3SchemeConstants;
 import com.android.apksig.util.DataSource;
 import com.android.apksig.util.DataSources;
 
@@ -147,6 +148,8 @@ public class ApkSignerTool {
         int minSdkVersion = 1;
         boolean minSdkVersionSpecified = false;
         int maxSdkVersion = Integer.MAX_VALUE;
+        int rotationMinSdkVersion = V3SchemeConstants.DEFAULT_ROTATION_MIN_SDK_VERSION;
+        boolean rotationTargetsDevRelease = false;
         List<SignerParams> signers = new ArrayList<>(1);
         SignerParams signerParams = new SignerParams();
         SigningCertificateLineage lineage = null;
@@ -175,7 +178,13 @@ public class ApkSignerTool {
                 minSdkVersionSpecified = true;
             } else if ("max-sdk-version".equals(optionName)) {
                 maxSdkVersion = optionsParser.getRequiredIntValue("Maximum API Level");
-            } else if ("v1-signing-enabled".equals(optionName)) {
+            } else if ("rotation-min-sdk-version".equals(optionName)) {
+                rotationMinSdkVersion = optionsParser.getRequiredIntValue(
+                        "Minimum API Level for Rotation");
+            } else if ("rotation-targets-dev-release".equals(optionName)) {
+                rotationTargetsDevRelease = optionsParser.getOptionalBooleanValue(true);
+            }
+            else if ("v1-signing-enabled".equals(optionName)) {
                 v1SigningEnabled = optionsParser.getOptionalBooleanValue(true);
             } else if ("v2-signing-enabled".equals(optionName)) {
                 v2SigningEnabled = optionsParser.getOptionalBooleanValue(true);
@@ -362,7 +371,9 @@ public class ApkSignerTool {
                         .setVerityEnabled(verityEnabled)
                         .setV4ErrorReportingEnabled(v4SigningEnabled && v4SigningFlagFound)
                         .setDebuggableApkPermitted(debuggableApkPermitted)
-                        .setSigningCertificateLineage(lineage);
+                        .setSigningCertificateLineage(lineage)
+                        .setMinSdkVersionForRotation(rotationMinSdkVersion)
+                        .setRotationTargetsDevRelease(rotationTargetsDevRelease);
         if (minSdkVersionSpecified) {
             apkSignerBuilder.setMinSdkVersion(minSdkVersion);
         }
@@ -568,6 +579,9 @@ public class ApkSignerTool {
                         "Verified using v3 scheme (APK Signature Scheme v3): "
                                 + result.isVerifiedUsingV3Scheme());
                 System.out.println(
+                        "Verified using v3.1 scheme (APK Signature Scheme v3.1): "
+                                + result.isVerifiedUsingV31Scheme());
+                System.out.println(
                         "Verified using v4 scheme (APK Signature Scheme v4): "
                                 + result.isVerifiedUsingV4Scheme());
                 System.out.println("Verified for SourceStamp: " + result.isSourceStampVerified());
@@ -576,10 +590,32 @@ public class ApkSignerTool {
                 }
             }
             if (printCerts) {
-                int signerNumber = 0;
-                for (X509Certificate signerCert : signerCerts) {
-                    signerNumber++;
-                    printCertificate(signerCert, "Signer #" + signerNumber, verbose);
+                // The v3.1 signature scheme allows key rotation to target T+ while the original
+                // signing key can still be used with v3.0; if a v3.1 block is present then also
+                // include the target SDK versions for both rotation and the original signing key.
+                if (result.isVerifiedUsingV31Scheme()) {
+                    for (ApkVerifier.Result.V3SchemeSignerInfo signer :
+                            result.getV31SchemeSigners()) {
+
+                        printCertificate(signer.getCertificate(),
+                                "Signer (minSdkVersion=" + signer.getMinSdkVersion()
+                                        + (signer.getRotationTargetsDevRelease()
+                                        ? " (dev release=true)" : "")
+                                        + ", maxSdkVersion=" + signer.getMaxSdkVersion() + ")",
+                                verbose);
+                    }
+                    for (ApkVerifier.Result.V3SchemeSignerInfo signer : result.getV3SchemeSigners()) {
+                        printCertificate(signer.getCertificate(),
+                                "Signer (minSdkVersion=" + signer.getMinSdkVersion()
+                                        + ", maxSdkVersion=" + signer.getMaxSdkVersion() + ")",
+                                verbose);
+                    }
+                } else {
+                    int signerNumber = 0;
+                    for (X509Certificate signerCert : signerCerts) {
+                        signerNumber++;
+                        printCertificate(signerCert, "Signer #" + signerNumber, verbose);
+                    }
                 }
                 if (sourceStampInfo != null) {
                     printCertificate(sourceStampInfo.getCertificate(), "Source Stamp Signer",
@@ -632,6 +668,20 @@ public class ApkSignerTool {
                 warningsEncountered = true;
                 warningsOut.println(
                         "WARNING: APK Signature Scheme v3 " + signerName + ": " + warning);
+            }
+        }
+        for (ApkVerifier.Result.V3SchemeSignerInfo signer : result.getV31SchemeSigners()) {
+            String signerName = "signer #" + (signer.getIndex() + 1) + "(minSdkVersion="
+                    + signer.getMinSdkVersion() + ", maxSdkVersion=" + signer.getMaxSdkVersion()
+                    + ")";
+            for (ApkVerifier.IssueWithParams error : signer.getErrors()) {
+                System.err.println(
+                        "ERROR: APK Signature Scheme v3.1 " + signerName + ": " + error);
+            }
+            for (ApkVerifier.IssueWithParams warning : signer.getWarnings()) {
+                warningsEncountered = true;
+                warningsOut.println(
+                        "WARNING: APK Signature Scheme v3.1 " + signerName + ": " + warning);
             }
         }
 
