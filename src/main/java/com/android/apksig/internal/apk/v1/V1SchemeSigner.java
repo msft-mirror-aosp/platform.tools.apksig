@@ -89,11 +89,6 @@ public abstract class V1SchemeSigner {
          * Digest algorithm used for the signature.
          */
         public DigestAlgorithm signatureDigestAlgorithm;
-
-        /**
-         * If DSA is the signing algorithm, whether or not deterministic DSA signing should be used.
-         */
-        public boolean deterministicDsaSigning;
     }
 
     /** Hidden constructor to prevent instantiation. */
@@ -500,8 +495,7 @@ public abstract class V1SchemeSigner {
         PublicKey publicKey = signingCert.getPublicKey();
         DigestAlgorithm digestAlgorithm = signerConfig.signatureDigestAlgorithm;
         Pair<String, AlgorithmIdentifier> signatureAlgs =
-                getSignerInfoSignatureAlgorithm(publicKey, digestAlgorithm,
-                        signerConfig.deterministicDsaSigning);
+                getSignerInfoSignatureAlgorithm(publicKey, digestAlgorithm);
         String jcaSignatureAlgorithm = signatureAlgs.getFirst();
 
         // Generate the cryptographic signature of the signature file

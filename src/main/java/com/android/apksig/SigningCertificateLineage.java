@@ -124,11 +124,6 @@ public class SigningCertificateLineage {
         return signingCertificateLineage.spawnDescendant(parent, child, childCapabilities);
     }
 
-    public static SigningCertificateLineage readFromBytes(byte[] lineageBytes)
-            throws IOException {
-        return readFromDataSource(DataSources.asDataSource(ByteBuffer.wrap(lineageBytes)));
-    }
-
     public static SigningCertificateLineage readFromFile(File file)
             throws IOException {
         if (file == null) {
@@ -288,10 +283,6 @@ public class SigningCertificateLineage {
         return result;
     }
 
-    public byte[] getBytes() {
-        return write().array();
-    }
-
     public void writeToFile(File file) throws IOException {
         if (file == null) {
             throw new NullPointerException("file == null");
@@ -411,8 +402,7 @@ public class SigningCertificateLineage {
 
         // TODO switch to one signature algorithm selection, or add support for multiple algorithms
         List<SignatureAlgorithm> algorithms = V3SchemeSigner.getSuggestedSignatureAlgorithms(
-                publicKey, mMinSdkVersion, false /* verityEnabled */,
-                false /* deterministicDsaSigning */);
+                publicKey, mMinSdkVersion, false /* padding support */);
         return algorithms.get(0);
     }
 

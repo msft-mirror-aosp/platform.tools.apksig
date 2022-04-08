@@ -74,12 +74,11 @@ public abstract class V4SchemeSigner {
      * Based on a public key, return a signing algorithm that supports verity.
      */
     public static List<SignatureAlgorithm> getSuggestedSignatureAlgorithms(PublicKey signingKey,
-            int minSdkVersion, boolean apkSigningBlockPaddingSupported,
-            boolean deterministicDsaSigning)
+            int minSdkVersion, boolean apkSigningBlockPaddingSupported)
             throws InvalidKeyException {
         List<SignatureAlgorithm> algorithms = V3SchemeSigner.getSuggestedSignatureAlgorithms(
                 signingKey, minSdkVersion,
-                apkSigningBlockPaddingSupported, deterministicDsaSigning);
+                apkSigningBlockPaddingSupported);
         // Keeping only supported algorithms.
         for (Iterator<SignatureAlgorithm> iter = algorithms.listIterator(); iter.hasNext(); ) {
             final SignatureAlgorithm algorithm = iter.next();
@@ -171,7 +170,7 @@ public abstract class V4SchemeSigner {
         final V4Signature.SigningInfo signingInfoNoSignature = new V4Signature.SigningInfo(apkDigest,
                 encodedCertificate, additionaData, publicKey.getEncoded(), -1, null);
 
-        final byte[] data = V4Signature.getSignedData(fileSize, hashingInfo,
+        final byte[] data = V4Signature.getSigningData(fileSize, hashingInfo,
                 signingInfoNoSignature);
 
         // Signing.
@@ -314,6 +313,8 @@ public abstract class V4SchemeSigner {
         return bestDigest;
     }
 
+    // Use the same order as in the ApkSignatureSchemeV3Verifier to make sure the digest
+    // verification in framework works.
     public static int digestAlgorithmSortingOrder(ContentDigestAlgorithm contentDigestAlgorithm) {
         switch (contentDigestAlgorithm) {
             case CHUNKED_SHA256:

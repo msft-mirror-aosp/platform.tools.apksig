@@ -209,19 +209,10 @@ public class SignerParams {
             }
             Provider ksProvider;
             if (keystoreProviderArg != null) {
-                try {
-                    // Single-arg Provider constructor
-                    ksProvider =
-                            (Provider) ksProviderClass.getConstructor(String.class)
-                                    .newInstance(keystoreProviderArg);
-                } catch (NoSuchMethodException e) {
-                    // Starting from JDK 9 the single-arg constructor accepting the configuration
-                    // has been replaced by a configure(String) method to be invoked after
-                    // instantiating the Provider with the no-arg constructor.
-                    ksProvider = (Provider) ksProviderClass.getConstructor().newInstance();
-                    ksProvider = (Provider) ksProviderClass.getMethod("configure",
-                            String.class).invoke(ksProvider, keystoreProviderArg);
-                }
+                // Single-arg Provider constructor
+                ksProvider =
+                        (Provider) ksProviderClass.getConstructor(String.class)
+                                .newInstance(keystoreProviderArg);
             } else {
                 // No-arg Provider constructor
                 ksProvider = (Provider) ksProviderClass.getConstructor().newInstance();

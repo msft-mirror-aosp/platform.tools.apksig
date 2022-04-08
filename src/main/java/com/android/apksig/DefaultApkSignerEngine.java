@@ -18,7 +18,6 @@ package com.android.apksig;
 
 import static com.android.apksig.apk.ApkUtils.SOURCE_STAMP_CERTIFICATE_HASH_ZIP_ENTRY_NAME;
 import static com.android.apksig.apk.ApkUtils.computeSha256DigestBytes;
-import static com.android.apksig.internal.apk.ApkSigningBlockUtils.VERITY_PADDING_BLOCK_ID;
 import static com.android.apksig.internal.apk.ApkSigningBlockUtils.VERSION_APK_SIGNATURE_SCHEME_V2;
 import static com.android.apksig.internal.apk.ApkSigningBlockUtils.VERSION_APK_SIGNATURE_SCHEME_V3;
 import static com.android.apksig.internal.apk.ApkSigningBlockUtils.VERSION_JAR_SIGNATURE_SCHEME;
@@ -65,7 +64,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,9 +102,6 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
     private final SigningCertificateLineage mSourceStampSigningCertificateLineage;
     private final int mMinSdkVersion;
     private final SigningCertificateLineage mSigningCertificateLineage;
-
-    private List<byte[]> mPreservedV2Signers = Collections.emptyList();
-    private List<Pair<byte[], Integer>> mPreservedSignatureBlocks = Collections.emptyList();
 
     private List<V1SchemeSigner.SignerConfig> mV1SignerConfigs = Collections.emptyList();
     private DigestAlgorithm mV1ContentDigestAlgorithm;
@@ -164,21 +159,6 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
 
     private RunnablesExecutor mExecutor = RunnablesExecutor.MULTI_THREADED;
 
-    /**
-     * A Set of block IDs to be discarded when requesting to preserve the original signatures.
-     */
-    private static final Set<Integer> DISCARDED_SIGNATURE_BLOCK_IDS;
-    static {
-        DISCARDED_SIGNATURE_BLOCK_IDS = new HashSet<>(3);
-        // The verity padding block is recomputed on an
-        // ApkSigningBlockUtils.ANDROID_COMMON_PAGE_ALIGNMENT_BYTES boundary.
-        DISCARDED_SIGNATURE_BLOCK_IDS.add(VERITY_PADDING_BLOCK_ID);
-        // The source stamp block is not currently preserved; appending a new signature scheme
-        // block will invalidate the previous source stamp.
-        DISCARDED_SIGNATURE_BLOCK_IDS.add(Constants.V1_SOURCE_STAMP_BLOCK_ID);
-        DISCARDED_SIGNATURE_BLOCK_IDS.add(Constants.V2_SOURCE_STAMP_BLOCK_ID);
-    }
-
     private DefaultApkSignerEngine(
             List<SignerConfig> signerConfigs,
             SignerConfig sourceStampSignerConfig,
@@ -195,6 +175,10 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
             throws InvalidKeyException {
         if (signerConfigs.isEmpty()) {
             throw new IllegalArgumentException("At least one signer config must be provided");
+        }
+        if (otherSignersSignaturesPreserved) {
+            throw new UnsupportedOperationException(
+                    "Preserving other signer's signatures is not yet implemented");
         }
 
         mV1SigningEnabled = v1SigningEnabled;
@@ -271,7 +255,6 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
             v1SignerConfig.privateKey = signerConfig.getPrivateKey();
             v1SignerConfig.certificates = certificates;
             v1SignerConfig.signatureDigestAlgorithm = v1SignatureDigestAlgorithm;
-            v1SignerConfig.deterministicDsaSigning = signerConfig.getDeterministicDsaSigning();
             // For digesting contents of APK entries and of MANIFEST.MF, pick the algorithm
             // of comparable strength to the digest algorithm used for computing the signature.
             // When there are multiple signers, pick the strongest digest algorithm out of their
@@ -458,8 +441,7 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
                         V2SchemeSigner.getSuggestedSignatureAlgorithms(
                                 publicKey,
                                 mMinSdkVersion,
-                                apkSigningBlockPaddingSupported && mVerityEnabled,
-                                signerConfig.getDeterministicDsaSigning());
+                                apkSigningBlockPaddingSupported && mVerityEnabled);
                 break;
             case ApkSigningBlockUtils.VERSION_APK_SIGNATURE_SCHEME_V3:
                 try {
@@ -467,8 +449,7 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
                             V3SchemeSigner.getSuggestedSignatureAlgorithms(
                                     publicKey,
                                     mMinSdkVersion,
-                                    apkSigningBlockPaddingSupported && mVerityEnabled,
-                                    signerConfig.getDeterministicDsaSigning());
+                                    apkSigningBlockPaddingSupported && mVerityEnabled);
                 } catch (InvalidKeyException e) {
 
                     // It is possible for a signer used for v1/v2 signing to not be allowed for use
@@ -482,8 +463,7 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
                 try {
                     newSignerConfig.signatureAlgorithms =
                             V4SchemeSigner.getSuggestedSignatureAlgorithms(
-                                    publicKey, mMinSdkVersion, apkSigningBlockPaddingSupported,
-                                    signerConfig.getDeterministicDsaSigning());
+                                    publicKey, mMinSdkVersion, apkSigningBlockPaddingSupported);
                 } catch (InvalidKeyException e) {
                     // V4 is an optional signing schema, ok to proceed without.
                     newSignerConfig.signatureAlgorithms = null;
@@ -522,9 +502,9 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
     @Override
     @SuppressWarnings("AndroidJdkLibsChecker")
     public Set<String> initWith(byte[] manifestBytes, Set<String> entryNames) {
-        V1SchemeVerifier.Result result = new V1SchemeVerifier.Result();
+        V1SchemeVerifier.Result dummyResult = new V1SchemeVerifier.Result();
         Pair<ManifestParser.Section, Map<String, ManifestParser.Section>> sections =
-                V1SchemeVerifier.parseManifest(manifestBytes, entryNames, result);
+                V1SchemeVerifier.parseManifest(manifestBytes, entryNames, dummyResult);
         String alg = V1SchemeSigner.getJcaMessageDigestAlgorithm(mV1ContentDigestAlgorithm);
         for (Map.Entry<String, ManifestParser.Section> entry : sections.getSecond().entrySet()) {
             String entryName = entry.getKey();
@@ -563,92 +543,11 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
         }
 
         if (mOtherSignersSignaturesPreserved) {
-            boolean schemeSignatureBlockPreserved = false;
-            mPreservedSignatureBlocks = new ArrayList<>();
-            try {
-                List<Pair<byte[], Integer>> signatureBlocks =
-                        ApkSigningBlockUtils.getApkSignatureBlocks(apkSigningBlock);
-                for (Pair<byte[], Integer> signatureBlock : signatureBlocks) {
-                    if (signatureBlock.getSecond() == Constants.APK_SIGNATURE_SCHEME_V2_BLOCK_ID) {
-                        // If a V2 signature block is found and the engine is configured to use V2
-                        // then save any of the previous signers that are not part of the current
-                        // signing request.
-                        if (mV2SigningEnabled) {
-                            List<Pair<List<X509Certificate>, byte[]>> v2Signers =
-                                    ApkSigningBlockUtils.getApkSignatureBlockSigners(
-                                            signatureBlock.getFirst());
-                            mPreservedV2Signers = new ArrayList<>(v2Signers.size());
-                            for (Pair<List<X509Certificate>, byte[]> v2Signer : v2Signers) {
-                                if (!isConfiguredWithSigner(v2Signer.getFirst())) {
-                                    mPreservedV2Signers.add(v2Signer.getSecond());
-                                    schemeSignatureBlockPreserved = true;
-                                }
-                            }
-                        } else {
-                            // else V2 signing is not enabled; save the entire signature block to be
-                            // added to the final APK signing block.
-                            mPreservedSignatureBlocks.add(signatureBlock);
-                            schemeSignatureBlockPreserved = true;
-                        }
-                    } else if (signatureBlock.getSecond()
-                            == Constants.APK_SIGNATURE_SCHEME_V3_BLOCK_ID) {
-                        // Preserving other signers in the presence of a V3 signature block is only
-                        // supported if the engine is configured to resign the APK with the V3
-                        // signature scheme, and the V3 signer in the signature block is the same
-                        // as the engine is configured to use.
-                        if (!mV3SigningEnabled) {
-                            throw new IllegalStateException(
-                                    "Preserving an existing V3 signature is not supported");
-                        }
-                        List<Pair<List<X509Certificate>, byte[]>> v3Signers =
-                                ApkSigningBlockUtils.getApkSignatureBlockSigners(
-                                        signatureBlock.getFirst());
-                        if (v3Signers.size() > 1) {
-                            throw new IllegalArgumentException(
-                                    "The provided APK signing block contains " + v3Signers.size()
-                                            + " V3 signers; the V3 signature scheme only supports"
-                                            + " one signer");
-                        }
-                        // If there is only a single V3 signer then ensure it is the signer
-                        // configured to sign the APK.
-                        if (v3Signers.size() == 1
-                                && !isConfiguredWithSigner(v3Signers.get(0).getFirst())) {
-                            throw new IllegalStateException(
-                                    "The V3 signature scheme only supports one signer; a request "
-                                            + "was made to preserve the existing V3 signature, "
-                                            + "but the engine is configured to sign with a "
-                                            + "different signer");
-                        }
-                    } else if (!DISCARDED_SIGNATURE_BLOCK_IDS.contains(
-                            signatureBlock.getSecond())) {
-                        mPreservedSignatureBlocks.add(signatureBlock);
-                    }
-                }
-            } catch (ApkFormatException | CertificateException | IOException e) {
-                throw new IllegalArgumentException("Unable to parse the provided signing block", e);
-            }
-            // Signature scheme V3+ only support a single signer; if the engine is configured to
-            // sign with V3+ then ensure no scheme signature blocks have been preserved.
-            if (mV3SigningEnabled && schemeSignatureBlockPreserved) {
-                throw new IllegalStateException(
-                        "Signature scheme V3+ only supports a single signer and cannot be "
-                                + "appended to the existing signature scheme blocks");
-            }
+            // TODO: Preserve blocks other than APK Signature Scheme v2 blocks of signers configured
+            // in this engine.
             return;
         }
-    }
-
-    /**
-     * Returns whether the engine is configured to sign the APK with a signer using the specified
-     * {@code signerCerts}.
-     */
-    private boolean isConfiguredWithSigner(List<X509Certificate> signerCerts) {
-        for (SignerConfig signerConfig : mSignerConfigs) {
-            if (signerCerts.containsAll(signerConfig.getCertificates())) {
-                return true;
-            }
-        }
-        return false;
+        // TODO: Preserve blocks other than APK Signature Scheme v2 blocks.
     }
 
     @Override
@@ -965,13 +864,6 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
         List<Pair<byte[], Integer>> signingSchemeBlocks = new ArrayList<>();
         ApkSigningBlockUtils.SigningSchemeBlockAndDigests v2SigningSchemeBlockAndDigests = null;
         ApkSigningBlockUtils.SigningSchemeBlockAndDigests v3SigningSchemeBlockAndDigests = null;
-        // If the engine is configured to preserve previous signature blocks and any were found in
-        // the existing APK signing block then add them to the list to be used to generate the
-        // new APK signing block.
-        if (mOtherSignersSignaturesPreserved && mPreservedSignatureBlocks != null
-                && !mPreservedSignatureBlocks.isEmpty()) {
-            signingSchemeBlocks.addAll(mPreservedSignatureBlocks);
-        }
 
         // create APK Signature Scheme V2 Signature if requested
         if (mV2SigningEnabled) {
@@ -985,8 +877,7 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
                             zipCentralDirectory,
                             eocd,
                             v2SignerConfigs,
-                            mV3SigningEnabled,
-                            mOtherSignersSignaturesPreserved ? mPreservedV2Signers : null);
+                            mV3SigningEnabled);
             signingSchemeBlocks.add(v2SigningSchemeBlockAndDigests.signingSchemeBlock);
         }
         if (mV3SigningEnabled) {
@@ -1531,15 +1422,12 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
         private final String mName;
         private final PrivateKey mPrivateKey;
         private final List<X509Certificate> mCertificates;
-        private final boolean mDeterministicDsaSigning;
 
         private SignerConfig(
-                String name, PrivateKey privateKey, List<X509Certificate> certificates,
-                boolean deterministicDsaSigning) {
+                String name, PrivateKey privateKey, List<X509Certificate> certificates) {
             mName = name;
             mPrivateKey = privateKey;
             mCertificates = Collections.unmodifiableList(new ArrayList<>(certificates));
-            mDeterministicDsaSigning = deterministicDsaSigning;
         }
 
         /** Returns the name of this signer. */
@@ -1560,19 +1448,11 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
             return mCertificates;
         }
 
-        /**
-         * If this signer is a DSA signer, whether or not the signing is done deterministically.
-         */
-        public boolean getDeterministicDsaSigning() {
-            return mDeterministicDsaSigning;
-        }
-
         /** Builder of {@link SignerConfig} instances. */
         public static class Builder {
             private final String mName;
             private final PrivateKey mPrivateKey;
             private final List<X509Certificate> mCertificates;
-            private final boolean mDeterministicDsaSigning;
 
             /**
              * Constructs a new {@code Builder}.
@@ -1584,29 +1464,12 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
              *     the first certificate must correspond to the {@code privateKey}.
              */
             public Builder(String name, PrivateKey privateKey, List<X509Certificate> certificates) {
-                this(name, privateKey, certificates, false);
-            }
-
-            /**
-             * Constructs a new {@code Builder}.
-             *
-             * @param name signer's name. The name is reflected in the name of files comprising the
-             *     JAR signature of the APK.
-             * @param privateKey signing key
-             * @param certificates list of one or more X.509 certificates. The subject public key of
-             *     the first certificate must correspond to the {@code privateKey}.
-             * @param deterministicDsaSigning When signing using DSA, whether or not the
-             * deterministic signing algorithm variant (RFC6979) should be used.
-             */
-            public Builder(String name, PrivateKey privateKey, List<X509Certificate> certificates,
-                    boolean deterministicDsaSigning) {
                 if (name.isEmpty()) {
                     throw new IllegalArgumentException("Empty name");
                 }
                 mName = name;
                 mPrivateKey = privateKey;
                 mCertificates = new ArrayList<>(certificates);
-                mDeterministicDsaSigning = deterministicDsaSigning;
             }
 
             /**
@@ -1614,8 +1477,7 @@ public class DefaultApkSignerEngine implements ApkSignerEngine {
              * this builder.
              */
             public SignerConfig build() {
-                return new SignerConfig(mName, mPrivateKey, mCertificates,
-                        mDeterministicDsaSigning);
+                return new SignerConfig(mName, mPrivateKey, mCertificates);
             }
         }
     }

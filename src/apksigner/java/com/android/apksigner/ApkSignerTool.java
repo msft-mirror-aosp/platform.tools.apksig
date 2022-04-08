@@ -25,6 +25,8 @@ import com.android.apksig.apk.MinSdkVersionException;
 import com.android.apksig.util.DataSource;
 import com.android.apksig.util.DataSources;
 
+import org.conscrypt.OpenSSLProvider;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -78,9 +80,7 @@ public class ApkSignerTool {
             return;
         }
 
-        // BEGIN-AOSP
         addProviders();
-        // END-AOSP
 
         String cmd = params[0];
         try {
@@ -113,20 +113,18 @@ public class ApkSignerTool {
         }
     }
 
-    // BEGIN-AOSP
     /**
      * Adds additional security providers to add support for signature algorithms not covered by
      * the default providers.
      */
     private static void addProviders() {
         try {
-            Security.addProvider(new org.conscrypt.OpenSSLProvider());
+            Security.addProvider(new OpenSSLProvider());
         } catch (UnsatisfiedLinkError e) {
             // This is expected if the library path does not include the native conscrypt library;
             // the default providers support all but PSS algorithms.
         }
     }
-    // END-AOSP
 
     private static void sign(String[] params) throws Exception {
         if (params.length == 0) {
@@ -159,8 +157,6 @@ public class ApkSignerTool {
         String optionOriginalForm = null;
         boolean v4SigningFlagFound = false;
         boolean sourceStampFlagFound = false;
-        boolean deterministicDsaSigning = false;
-        boolean otherSignersSignaturesPreserved = false;
         while ((optionName = optionsParser.nextOption()) != null) {
             optionOriginalForm = optionsParser.getOptionOriginalForm();
             if (("help".equals(optionName)) || ("h".equals(optionName))) {
@@ -261,10 +257,6 @@ public class ApkSignerTool {
                 File stampLineageFile = new File(
                         optionsParser.getRequiredValue("Stamp Lineage File"));
                 sourceStampLineage = getLineageFromInputFile(stampLineageFile);
-            } else if ("deterministic-dsa-signing".equals(optionName)) {
-                deterministicDsaSigning = optionsParser.getOptionalBooleanValue(false);
-            } else if ("append-signature".equals(optionName)) {
-                otherSignersSignaturesPreserved = optionsParser.getOptionalBooleanValue(true);
             } else {
                 throw new ParameterException(
                         "Unsupported option: " + optionOriginalForm + ". See --help for supported"
@@ -321,8 +313,7 @@ public class ApkSignerTool {
             for (SignerParams signer : signers) {
                 signerNumber++;
                 signer.setName("signer #" + signerNumber);
-                ApkSigner.SignerConfig signerConfig = getSignerConfig(signer, passwordRetriever,
-                        deterministicDsaSigning);
+                ApkSigner.SignerConfig signerConfig = getSignerConfig(signer, passwordRetriever);
                 if (signerConfig == null) {
                     return;
                 }
@@ -331,8 +322,7 @@ public class ApkSignerTool {
             if (sourceStampFlagFound) {
                 sourceStampSignerParams.setName("stamp signer");
                 sourceStampSignerConfig =
-                        getSignerConfig(sourceStampSignerParams, passwordRetriever,
-                                deterministicDsaSigning);
+                        getSignerConfig(sourceStampSignerParams, passwordRetriever);
                 if (sourceStampSignerConfig == null) {
                     return;
                 }
@@ -353,7 +343,7 @@ public class ApkSignerTool {
                 new ApkSigner.Builder(signerConfigs)
                         .setInputApk(inputApk)
                         .setOutputApk(tmpOutputApk)
-                        .setOtherSignersSignaturesPreserved(otherSignersSignaturesPreserved)
+                        .setOtherSignersSignaturesPreserved(false)
                         .setV1SigningEnabled(v1SigningEnabled)
                         .setV2SigningEnabled(v2SigningEnabled)
                         .setV3SigningEnabled(v3SigningEnabled)
@@ -399,8 +389,8 @@ public class ApkSignerTool {
         }
     }
 
-    private static ApkSigner.SignerConfig getSignerConfig(SignerParams signer,
-            PasswordRetriever passwordRetriever, boolean deterministicDsaSigning) {
+    private static ApkSigner.SignerConfig getSignerConfig(
+            SignerParams signer, PasswordRetriever passwordRetriever) {
         try {
             signer.loadPrivateKeyAndCerts(passwordRetriever);
         } catch (ParameterException e) {
@@ -432,8 +422,7 @@ public class ApkSignerTool {
         }
         ApkSigner.SignerConfig signerConfig =
                 new ApkSigner.SignerConfig.Builder(
-                        v1SigBasename, signer.getPrivateKey(), signer.getCerts(),
-                        deterministicDsaSigning)
+                        v1SigBasename, signer.getPrivateKey(), signer.getCerts())
                         .build();
         return signerConfig;
     }
@@ -1102,19 +1091,10 @@ public class ApkSignerTool {
             }
             Provider provider;
             if (constructorParam != null) {
-                try {
-                    // Single-arg Provider constructor
-                    provider =
-                            (Provider) providerClass.getConstructor(String.class)
-                                    .newInstance(constructorParam);
-                } catch (NoSuchMethodException e) {
-                    // Starting from JDK 9 the single-arg constructor accepting the configuration
-                    // has been replaced by a configure(String) method to be invoked after
-                    // instantiating the Provider with the no-arg constructor.
-                    provider = (Provider) providerClass.getConstructor().newInstance();
-                    provider = (Provider) providerClass.getMethod("configure", String.class)
-                            .invoke(provider, constructorParam);
-                }
+                // Single-arg Provider constructor
+                provider =
+                        (Provider) providerClass.getConstructor(String.class)
+                                .newInstance(constructorParam);
             } else {
                 // No-arg Provider constructor
                 provider = (Provider) providerClass.getConstructor().newInstance();
