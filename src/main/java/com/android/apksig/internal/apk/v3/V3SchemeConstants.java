@@ -28,16 +28,13 @@ public class V3SchemeConstants {
 
     public static final int MIN_SDK_WITH_V3_SUPPORT = AndroidSdkVersion.P;
     public static final int MIN_SDK_WITH_V31_SUPPORT = AndroidSdkVersion.T;
-    // TODO(b/192301300): Once the signing config has been updated to support specifying a
-    // minSdkVersion for rotation this should be updated to T.
-    public static final int DEFAULT_ROTATION_MIN_SDK_VERSION  = AndroidSdkVersion.P;
     /**
-     * The v3.1 signature scheme is initially intended for the T development release, but until
-     * the T SDK is finalized it is using the SDK version of the latest platform release. To support
-     * testing of the v3.1 signature scheme and key rotation on the T development release, the
-     * rotation-min-sdk-version should use the SDK version of Sv2 in the v3.1 signer block.
+     * By default, APK signing key rotation will target T, but packages that have previously
+     * rotated can continue rotating on pre-T by specifying an SDK version <= 32 as the
+     * --rotation-min-sdk-version parameter when using apksigner or when invoking
+     * {@link com.android.apksig.ApkSigner.Builder#setMinSdkVersionForRotation(int)}.
      */
-    public static final int DEV_RELEASE_ROTATION_MIN_SDK_VERSION = AndroidSdkVersion.Sv2;
+    public static final int DEFAULT_ROTATION_MIN_SDK_VERSION  = AndroidSdkVersion.T;
 
     /**
      * This attribute is intended to be written to the V3.0 signer block as an additional attribute
