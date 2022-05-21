@@ -51,7 +51,6 @@ import com.android.apksig.zip.ZipFormatException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -228,7 +227,9 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(false)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
+
         signGolden(
                 "golden-legacy-aligned-in.apk",
                 new File(outDir, "golden-legacy-aligned-v3-lineage-out.apk"),
@@ -236,6 +237,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(false)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         signGolden(
                 "golden-aligned-in.apk",
@@ -244,6 +246,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(false)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
 
         signGolden(
@@ -296,6 +299,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         signGolden(
                 "golden-legacy-aligned-in.apk",
@@ -304,6 +308,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         signGolden(
                 "golden-aligned-in.apk",
@@ -312,6 +317,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
 
         signGolden(
@@ -342,6 +348,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(true)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         signGolden(
                 "golden-legacy-aligned-in.apk",
@@ -350,6 +357,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(true)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         signGolden(
                 "golden-aligned-in.apk",
@@ -358,6 +366,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(true)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
 
         signGolden(
@@ -462,6 +471,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(false)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         assertGolden(
                 "golden-unaligned-in.apk",
@@ -484,6 +494,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         assertGolden(
                 "golden-unaligned-in.apk",
@@ -499,6 +510,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(true)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
 
         // Uncompressed entries in this input file are aligned by zero-padding the "extra" field, as
@@ -538,6 +550,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(false)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         assertGolden(
                 "golden-legacy-aligned-in.apk",
@@ -560,6 +573,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         assertGolden(
                 "golden-legacy-aligned-in.apk",
@@ -575,6 +589,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(true)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
 
         // Uncompressed entries in this input file are aligned by padding the "extra" field, as
@@ -613,6 +628,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(false)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         assertGolden(
                 "golden-aligned-in.apk",
@@ -635,6 +651,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
         assertGolden(
                 "golden-aligned-in.apk",
@@ -650,6 +667,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(true)
                         .setV2SigningEnabled(true)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
     }
 
@@ -952,6 +970,7 @@ public class ApkSignerTest {
                         .setV1SigningEnabled(false)
                         .setV2SigningEnabled(false)
                         .setV3SigningEnabled(true)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
                         .setSigningCertificateLineage(lineage));
 
         // Verifies that an intermediate signer in the lineage is not sufficient to satisfy the
@@ -1588,11 +1607,8 @@ public class ApkSignerTest {
         assertTrue(resultMinRotationT.isVerifiedUsingV31Scheme());
         assertResultContainsSigners(resultMinRotationT, true, FIRST_RSA_2048_SIGNER_RESOURCE_NAME,
             SECOND_RSA_2048_SIGNER_RESOURCE_NAME);
-        // Since T is still under development, it is using the SDK version of the previous platform
-        // release, so to test v3.1 on T the rotation-min-sdk-version must target the SDK version
-        // of Sv2.
         assertV31SignerTargetsMinApiLevel(resultMinRotationT, SECOND_RSA_2048_SIGNER_RESOURCE_NAME,
-            V3SchemeConstants.DEV_RELEASE_ROTATION_MIN_SDK_VERSION);
+            AndroidSdkVersion.T);
         assertVerified(resultMinRotationU);
         assertTrue(resultMinRotationU.isVerifiedUsingV31Scheme());
         assertResultContainsSigners(resultMinRotationU, true, FIRST_RSA_2048_SIGNER_RESOURCE_NAME,
@@ -1683,13 +1699,10 @@ public class ApkSignerTest {
                         .setSourceStampSignerConfig(rsa2048OriginalSignerConfig));
         ApkVerifier.Result result = verify(signedApk, null);
 
-        // Since T is still under development, it is using the SDK version of the previous platform
-        // release, so to test v3.1 on T the rotation-min-sdk-version must target the SDK version
-        // of Sv2.
         assertResultContainsSigners(result, true, FIRST_RSA_2048_SIGNER_RESOURCE_NAME,
                 SECOND_RSA_2048_SIGNER_RESOURCE_NAME);
         assertV31SignerTargetsMinApiLevel(result, SECOND_RSA_2048_SIGNER_RESOURCE_NAME,
-                V3SchemeConstants.DEV_RELEASE_ROTATION_MIN_SDK_VERSION);
+                AndroidSdkVersion.T);
         assertSourceStampVerified(signedApk, result);
     }
 
@@ -1770,15 +1783,14 @@ public class ApkSignerTest {
     }
 
     @Test
-    public void testV31_rotationMinSdkVersionT_v30SignerTargetsAtLeast31() throws Exception {
-        // The T development release is currently using the API level of S until its own SDK is
-        // finalized. This requires apksig to sign an APK targeting T for rotation with a V3.1
-        // block that targets API level 31. By default, apksig will decrement the SDK version for
-        // the current signer block and use that as the maxSdkVersion for the next signer; however
-        // this means the original signing key will only target through 30 which would prevent
-        // an APK signed with V3.1 targeting T from installing on a device running S. This test
-        // ensures targeting T will use the rotation-targets-dev-release option so that the APK
-        // can still install on devices with an API level of 31.
+    public void testV31_rotationMinSdkVersionEqualsMinSdkVersion_v3SignerPresent()
+            throws Exception {
+        // The SDK version for Sv2 (32) is used as the minSdkVersion for the V3.1 signature
+        // scheme to allow rotation to target the T development platform; this will be updated
+        // to the real SDK version of T once its SDK is finalized. This test verifies if a
+        // package has Sv2 as its minSdkVersion, the signing can complete as expected with the
+        // v3 block signed by the original signer and targeting just Sv2, and the v3.1 block
+        // signed by the rotated signer and targeting the dev release of Sv2 and all later releases.
         List<ApkSigner.SignerConfig> rsa2048SignerConfigWithLineage =
                 Arrays.asList(
                         getDefaultSignerConfigFromResources(FIRST_RSA_2048_SIGNER_RESOURCE_NAME),
@@ -1787,7 +1799,7 @@ public class ApkSignerTest {
                 Resources.toSigningCertificateLineage(
                         ApkSignerTest.class, LINEAGE_RSA_2048_2_SIGNERS_RESOURCE_NAME);
 
-        File signedApk = sign("original.apk",
+        File signedApk = sign("original-minSdk32.apk",
                 new ApkSigner.Builder(rsa2048SignerConfigWithLineage)
                         .setV1SigningEnabled(true)
                         .setV2SigningEnabled(true)
@@ -1798,9 +1810,7 @@ public class ApkSignerTest {
         ApkVerifier.Result result = verify(signedApk, null);
 
         assertVerified(result);
-        assertTrue(result.isVerifiedUsingV31Scheme());
-        assertTrue(result.getV31SchemeSigners().get(0).getRotationTargetsDevRelease());
-        assertTrue(result.getV3SchemeSigners().get(0).getMaxSdkVersion() >= AndroidSdkVersion.S);
+        assertEquals(AndroidSdkVersion.Sv2, result.getV3SchemeSigners().get(0).getMaxSdkVersion());
     }
 
     @Test
@@ -1826,6 +1836,66 @@ public class ApkSignerTest {
         assertVerified(result);
         assertFalse(result.isVerifiedUsingV31Scheme());
         assertTrue(result.isVerifiedUsingV3Scheme());
+    }
+
+    @Test
+    public void testV31_rotationMinSdkVersionDefault_rotationTargetsT() throws Exception {
+        // The v3.1 signature scheme was introduced in T to allow developers to target T+ for
+        // rotation due to known issues with rotation on previous platform releases. This test
+        // verifies an APK signed with a rotated signing key defaults to the original signing
+        // key used in the v3 signing block for pre-T devices, and the rotated signing key used
+        // in the v3.1 signing block for T+ devices.
+        List<ApkSigner.SignerConfig> rsa2048SignerConfigWithLineage =
+                Arrays.asList(
+                        getDefaultSignerConfigFromResources(FIRST_RSA_2048_SIGNER_RESOURCE_NAME),
+                        getDefaultSignerConfigFromResources(SECOND_RSA_2048_SIGNER_RESOURCE_NAME));
+        SigningCertificateLineage lineage =
+                Resources.toSigningCertificateLineage(
+                        ApkSignerTest.class, LINEAGE_RSA_2048_2_SIGNERS_RESOURCE_NAME);
+
+        File signedApk = sign("original.apk",
+                new ApkSigner.Builder(rsa2048SignerConfigWithLineage)
+                        .setV1SigningEnabled(true)
+                        .setV2SigningEnabled(true)
+                        .setV3SigningEnabled(true)
+                        .setV4SigningEnabled(false)
+                        .setSigningCertificateLineage(lineage));
+        ApkVerifier.Result result = verify(signedApk, null);
+
+        assertVerified(result);
+        assertTrue(result.isVerifiedUsingV3Scheme());
+        assertTrue(result.isVerifiedUsingV31Scheme());
+        assertEquals(AndroidSdkVersion.Sv2, result.getV3SchemeSigners().get(0).getMaxSdkVersion());
+        assertV31SignerTargetsMinApiLevel(result, SECOND_RSA_2048_SIGNER_RESOURCE_NAME,
+                AndroidSdkVersion.T);
+    }
+
+    @Test
+    public void testV31_rotationMinSdkVersionP_rotationTargetsP() throws Exception {
+        // While the V3.1 signature scheme will target T by default, a package that has
+        // previously rotated can provide a rotation-min-sdk-version less than T to continue
+        // using the rotated signing key in the v3.0 block.
+        List<ApkSigner.SignerConfig> rsa2048SignerConfigWithLineage =
+                Arrays.asList(
+                        getDefaultSignerConfigFromResources(FIRST_RSA_2048_SIGNER_RESOURCE_NAME),
+                        getDefaultSignerConfigFromResources(SECOND_RSA_2048_SIGNER_RESOURCE_NAME));
+        SigningCertificateLineage lineage =
+                Resources.toSigningCertificateLineage(
+                        ApkSignerTest.class, LINEAGE_RSA_2048_2_SIGNERS_RESOURCE_NAME);
+
+        File signedApk = sign("original.apk",
+                new ApkSigner.Builder(rsa2048SignerConfigWithLineage)
+                        .setV1SigningEnabled(true)
+                        .setV2SigningEnabled(true)
+                        .setV3SigningEnabled(true)
+                        .setV4SigningEnabled(false)
+                        .setMinSdkVersionForRotation(AndroidSdkVersion.P)
+                        .setSigningCertificateLineage(lineage));
+        ApkVerifier.Result result = verify(signedApk, null);
+
+        assertVerified(result);
+        assertTrue(result.isVerifiedUsingV3Scheme());
+        assertFalse(result.isVerifiedUsingV31Scheme());
     }
 
     @Test
@@ -1886,6 +1956,31 @@ public class ApkSignerTest {
 
         assertResultContainsV4Signers(result, FIRST_RSA_2048_SIGNER_RESOURCE_NAME,
                 SECOND_RSA_2048_SIGNER_RESOURCE_NAME);
+    }
+
+    @Test
+    public void testSourceStampTimestamp_signWithSourceStamp_validTimestampValue()
+            throws Exception {
+        // Source stamps should include a timestamp attribute with the epoch time the stamp block
+        // was signed. This test verifies a standard signing with a source stamp includes a valid
+        // value for the source stamp timestamp attribute.
+        ApkSigner.SignerConfig rsa2048SignerConfig = getDefaultSignerConfigFromResources(
+                FIRST_RSA_2048_SIGNER_RESOURCE_NAME);
+        List<ApkSigner.SignerConfig> ecP256SignerConfig = Collections.singletonList(
+                getDefaultSignerConfigFromResources(EC_P256_SIGNER_RESOURCE_NAME));
+
+        File signedApk = sign("original.apk",
+                new ApkSigner.Builder(ecP256SignerConfig)
+                        .setV1SigningEnabled(true)
+                        .setV2SigningEnabled(true)
+                        .setV3SigningEnabled(true)
+                        .setV4SigningEnabled(false)
+                        .setSourceStampSignerConfig(rsa2048SignerConfig));
+        ApkVerifier.Result result = verify(signedApk, null);
+
+        assertSourceStampVerified(signedApk, result);
+        long timestamp = result.getSourceStampInfo().getTimestampEpochSeconds();
+        assertTrue("Invalid source stamp timestamp value: " + timestamp, timestamp > 0);
     }
 
     /**
