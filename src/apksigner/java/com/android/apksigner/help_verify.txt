@@ -11,9 +11,6 @@ range of API Levels.
 
 --print-certs         Show information about the APK's signing certificates
 
---print-certs-pem     Show information about the APK's signing certificates and prints the PEM
-                      encoding of each signing certificate to stdout.
-
 -v, --verbose         Verbose output mode
 
 --min-sdk-version     Lowest API Level on which this APK's signatures will be
