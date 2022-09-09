@@ -2,7 +2,7 @@
 
 licenses(["notice"])  # Apache License 2.0
 
-load("//tools/base/bazel:coverage.bzl", "coverage_java_test", "coverage_java_library")
+load("//tools/base/bazel:coverage.bzl", "coverage_java_library", "coverage_java_test")
 
 # Public API of the apksig library
 coverage_java_library(
@@ -69,5 +69,7 @@ coverage_java_test(
     deps = [
         ":apksig-all",
         "@maven//:junit.junit",
+        "@maven//:org.bouncycastle.bcprov-jdk15on",
+        "@maven//:org.conscrypt.conscrypt-openjdk-uber",
     ],
 )
