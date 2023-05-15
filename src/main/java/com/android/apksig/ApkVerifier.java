@@ -515,14 +515,17 @@ public class ApkVerifier {
             final byte[] digestFromV4 = digestsFromV4.get(0).getValue();
 
             if (result.isVerifiedUsingV3Scheme()) {
-                int expectedSize = result.isVerifiedUsingV31Scheme() ? 2 : 1;
+                final boolean isV31 = result.isVerifiedUsingV31Scheme();
+                final int expectedSize = isV31 ? 2 : 1;
                 if (v4Signers.size() != expectedSize) {
-                    result.addError(Issue.V4_SIG_MULTIPLE_SIGNERS);
+                    result.addError(isV31 ? Issue.V41_SIG_NEEDS_TWO_SIGNERS
+                            : Issue.V4_SIG_MULTIPLE_SIGNERS);
+                    return result;
                 }
 
                 checkV4Signer(result.getV3SchemeSigners(), v4Signers.get(0).mCerts, digestFromV4,
                         result);
-                if (result.isVerifiedUsingV31Scheme()) {
+                if (isV31) {
                     checkV4Signer(result.getV31SchemeSigners(), v4Signers.get(1).mCerts,
                             digestFromV4, result);
                 }
@@ -3122,6 +3125,11 @@ public class ApkVerifier {
          */
         V4_SIG_MULTIPLE_SIGNERS(
                 "V4 signature only supports one signer"),
+
+        /**
+         * V4.1 signature requires two signers to match the v3 and the v3.1.
+         */
+        V41_SIG_NEEDS_TWO_SIGNERS("V4.1 signature requires two signers"),
 
         /**
          * The signer used to sign APK Signature Scheme V2/V3 signature does not match the signer
