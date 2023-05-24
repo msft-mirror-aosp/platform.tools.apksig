@@ -44,6 +44,8 @@ import com.android.apksig.internal.util.Resources;
 import com.android.apksig.util.DataSource;
 import com.android.apksig.util.DataSources;
 
+import java.io.File;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.Provider;
 import java.util.Arrays;
@@ -1843,6 +1845,16 @@ public class ApkVerifierTest {
         assertTrue(result.isVerifiedUsingV31Scheme());
     }
 
+    @Test
+    public void verify41_v41DigestMismatchedWithV31_reportsError() throws Exception {
+        // This test verifies a digest mismatch between the v4.1 signature and the v3.1 signature
+        // is properly reported during v4 signature verification.
+        ApkVerifier.Result result = verifyWithV4Signature("v41-digest-mismatched-with-v31.apk",
+                "v41-digest-mismatched-with-v31.apk.idsig");
+
+        assertVerificationFailure(result, Issue.V4_SIG_V2_V3_DIGESTS_MISMATCH);
+    }
+
     @Test(expected = IOException.class)
     public void verify_largeFileSize_doesNotFailWithOOMError() throws Exception {
         // During V1 signature verification, each file needs to be uncompressed to calculate
@@ -1968,6 +1980,20 @@ public class ApkVerifierTest {
         }
         if (maxSdkVersionOverride != null) {
             builder.setMaxCheckedPlatformVersion(maxSdkVersionOverride);
+        }
+        return builder.build().verify();
+    }
+
+    private ApkVerifier.Result verifyWithV4Signature(
+            String apkFilenameInResources,
+            String v4SignatureFile)
+            throws IOException, ApkFormatException, NoSuchAlgorithmException, URISyntaxException {
+        byte[] apkBytes = Resources.toByteArray(getClass(), apkFilenameInResources);
+
+        ApkVerifier.Builder builder =
+                new ApkVerifier.Builder(DataSources.asDataSource(ByteBuffer.wrap(apkBytes)));
+        if (v4SignatureFile != null) {
+            builder.setV4SignatureFile(new File(getClass().getResource(v4SignatureFile).toURI()));
         }
         return builder.build().verify();
     }

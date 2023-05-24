@@ -27,6 +27,7 @@ import static com.android.apksig.internal.apk.ApkSigningBlockUtils.VERSION_APK_S
 import static com.android.apksig.internal.apk.ApkSigningBlockUtils.VERSION_APK_SIGNATURE_SCHEME_V4;
 import static com.android.apksig.internal.apk.ApkSigningBlockUtils.VERSION_JAR_SIGNATURE_SCHEME;
 import static com.android.apksig.internal.apk.ApkSigningBlockUtils.VERSION_SOURCE_STAMP;
+import static com.android.apksig.internal.apk.ApkSigningBlockUtils.toHex;
 import static com.android.apksig.internal.apk.v1.V1SchemeConstants.MANIFEST_ENTRY_NAME;
 import static com.android.apksig.internal.apk.v3.V3SchemeConstants.MIN_SDK_WITH_V31_SUPPORT;
 
@@ -510,7 +511,10 @@ public class ApkVerifier {
             List<ApkSigningBlockUtils.Result.SignerInfo.ContentDigest> digestsFromV4 =
                     v4Signers.get(0).getContentDigests();
             if (digestsFromV4.size() != 1) {
-                result.addError(Issue.V4_SIG_V2_V3_DIGESTS_MISMATCH);
+                result.addError(Issue.V4_SIG_UNEXPECTED_DIGESTS, digestsFromV4.size());
+                if (digestsFromV4.size() == 0) {
+                    return result;
+                }
             }
             final byte[] digestFromV4 = digestsFromV4.get(0).getValue();
 
@@ -526,8 +530,17 @@ public class ApkVerifier {
                 checkV4Signer(result.getV3SchemeSigners(), v4Signers.get(0).mCerts, digestFromV4,
                         result);
                 if (isV31) {
+                    List<ApkSigningBlockUtils.Result.SignerInfo.ContentDigest> digestsFromV41 =
+                            v4Signers.get(1).getContentDigests();
+                    if (digestsFromV41.size() != 1) {
+                        result.addError(Issue.V4_SIG_UNEXPECTED_DIGESTS, digestsFromV41.size());
+                        if (digestsFromV41.size() == 0) {
+                            return result;
+                        }
+                    }
+                    final byte[] digestFromV41 = digestsFromV41.get(0).getValue();
                     checkV4Signer(result.getV31SchemeSigners(), v4Signers.get(1).mCerts,
-                            digestFromV4, result);
+                            digestFromV41, result);
                 }
             } else if (result.isVerifiedUsingV2Scheme()) {
                 if (v4Signers.size() != 1) {
@@ -546,7 +559,8 @@ public class ApkVerifier {
                 final byte[] digestFromV2 = pickBestDigestForV4(
                         v2Signers.get(0).getContentDigests());
                 if (!Arrays.equals(digestFromV4, digestFromV2)) {
-                    result.addError(Issue.V4_SIG_V2_V3_DIGESTS_MISMATCH);
+                    result.addError(Issue.V4_SIG_V2_V3_DIGESTS_MISMATCH, 2, toHex(digestFromV2),
+                            toHex(digestFromV4));
                 }
             } else {
                 throw new RuntimeException("V4 signature must be also verified with V2/V3");
@@ -1138,7 +1152,8 @@ public class ApkVerifier {
         // Compare digests.
         final byte[] digestFromV3 = pickBestDigestForV4(v3Signers.get(0).getContentDigests());
         if (!Arrays.equals(digestFromV4, digestFromV3)) {
-            result.addError(Issue.V4_SIG_V2_V3_DIGESTS_MISMATCH);
+            result.addError(Issue.V4_SIG_V2_V3_DIGESTS_MISMATCH, 3, toHex(digestFromV3),
+                    toHex(digestFromV4));
         }
     }
 
@@ -3138,8 +3153,29 @@ public class ApkVerifier {
         V4_SIG_V2_V3_SIGNERS_MISMATCH(
                 "V4 signature and V2/V3 signature have mismatched certificates"),
 
+        /**
+         * The v4 signature's digest does not match the digest from the corresponding v2 / v3
+         * signature.
+         *
+         * <ul>
+         *     <li>Parameter 1: Signature scheme of mismatched digest ({@code int})
+         *     <li>Parameter 2: v2/v3 digest ({@code String})
+         *     <li>Parameter 3: v4 digest ({@code String})
+         * </ul>
+         */
         V4_SIG_V2_V3_DIGESTS_MISMATCH(
-                "V4 signature and V2/V3 signature have mismatched digests"),
+                "V4 signature and V%1$d signature have mismatched digests, V%1$d digest: %2$s, V4"
+                        + " digest: %3$s"),
+
+        /**
+         * The v4 signature does not contain the expected number of digests.
+         *
+         * <ul>
+         *     <li>Parameter 1: Number of digests found ({@code int})
+         * </ul>
+         */
+        V4_SIG_UNEXPECTED_DIGESTS(
+                "V4 signature does not have the expected number of digests, found %1$d"),
 
         /**
          * The v4 signature format version isn't the same as the tool's current version, something
