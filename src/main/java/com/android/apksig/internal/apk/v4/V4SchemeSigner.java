@@ -226,7 +226,8 @@ public abstract class V4SchemeSigner {
         final V4Signature.SigningInfos signingInfos;
         if (signerConfig.v41Config != null) {
             if (!apkDigests.containsKey(VERSION_APK_SIGNATURE_SCHEME_V31)) {
-                throw new RuntimeException("V4.1 cannot be signed without a V3.1 content digest");
+                throw new IllegalStateException(
+                        "V4.1 cannot be signed without a V3.1 content digest");
             }
             apkDigest = apkDigests.get(VERSION_APK_SIGNATURE_SCHEME_V31);
             final V4Signature.SigningInfoBlock extSigningBlock = new V4Signature.SigningInfoBlock(
@@ -307,7 +308,8 @@ public abstract class V4SchemeSigner {
                 blockId = APK_SIGNATURE_SCHEME_V3_BLOCK_ID;
                 break;
             default:
-                throw new RuntimeException("Invalid V3 scheme provided: " + v3SchemeVersion);
+                throw new IllegalArgumentException(
+                        "Invalid V3 scheme provided: " + v3SchemeVersion);
         }
         try {
             final SignatureInfo signatureInfo =

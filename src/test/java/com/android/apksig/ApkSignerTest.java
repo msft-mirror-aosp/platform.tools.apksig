@@ -55,7 +55,6 @@ import com.android.apksig.util.DataSource;
 import com.android.apksig.util.DataSources;
 import com.android.apksig.zip.ZipFormatException;
 
-import java.security.InvalidKeyException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;

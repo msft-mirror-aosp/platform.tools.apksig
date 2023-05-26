@@ -44,7 +44,6 @@ import com.android.apksig.internal.util.Resources;
 import com.android.apksig.util.DataSource;
 import com.android.apksig.util.DataSources;
 
-import java.io.File;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.Provider;
@@ -52,7 +51,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Assume;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -77,6 +78,8 @@ import java.util.stream.Stream;
 
 @RunWith(JUnit4.class)
 public class ApkVerifierTest {
+    @Rule
+    public TemporaryFolder mTemporaryFolder = new TemporaryFolder();
 
     private static final String[] DSA_KEY_NAMES = {"1024", "2048", "3072"};
     private static final String[] DSA_KEY_NAMES_1024_AND_SMALLER = {"1024"};
@@ -1993,7 +1996,8 @@ public class ApkVerifierTest {
         ApkVerifier.Builder builder =
                 new ApkVerifier.Builder(DataSources.asDataSource(ByteBuffer.wrap(apkBytes)));
         if (v4SignatureFile != null) {
-            builder.setV4SignatureFile(new File(getClass().getResource(v4SignatureFile).toURI()));
+            builder.setV4SignatureFile(
+                    Resources.toFile(getClass(), v4SignatureFile, mTemporaryFolder));
         }
         return builder.build().verify();
     }

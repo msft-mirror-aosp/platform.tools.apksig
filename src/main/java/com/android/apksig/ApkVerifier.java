@@ -512,7 +512,7 @@ public class ApkVerifier {
                     v4Signers.get(0).getContentDigests();
             if (digestsFromV4.size() != 1) {
                 result.addError(Issue.V4_SIG_UNEXPECTED_DIGESTS, digestsFromV4.size());
-                if (digestsFromV4.size() == 0) {
+                if (digestsFromV4.isEmpty()) {
                     return result;
                 }
             }
@@ -534,7 +534,7 @@ public class ApkVerifier {
                             v4Signers.get(1).getContentDigests();
                     if (digestsFromV41.size() != 1) {
                         result.addError(Issue.V4_SIG_UNEXPECTED_DIGESTS, digestsFromV41.size());
-                        if (digestsFromV41.size() == 0) {
+                        if (digestsFromV41.isEmpty()) {
                             return result;
                         }
                     }
