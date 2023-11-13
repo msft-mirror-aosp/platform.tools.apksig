@@ -16,6 +16,7 @@
 
 package com.android.apksig.internal.apk.v1;
 
+import static com.android.apksig.Constants.MAX_APK_SIGNERS;
 import static com.android.apksig.internal.oid.OidConstants.getSigAlgSupportedApiLevels;
 import static com.android.apksig.internal.pkcs7.AlgorithmIdentifier.getJcaDigestAlgorithm;
 import static com.android.apksig.internal.pkcs7.AlgorithmIdentifier.getJcaSignatureAlgorithm;
@@ -51,6 +52,8 @@ import com.android.apksig.internal.zip.ZipUtils;
 import com.android.apksig.util.DataSinks;
 import com.android.apksig.util.DataSource;
 import com.android.apksig.zip.ZipFormatException;
+
+import com.google.security.annotations.SuppressInsecureCipherModeCheckerReviewed;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -304,6 +307,11 @@ public abstract class V1SchemeVerifier {
             }
             if (signers.isEmpty()) {
                 result.addError(Issue.JAR_SIG_NO_SIGNATURES);
+                return;
+            }
+            if (signers.size() > MAX_APK_SIGNERS) {
+                result.addError(Issue.JAR_SIG_MAX_SIGNATURES_EXCEEDED, MAX_APK_SIGNERS,
+                        signers.size());
                 return;
             }
 
@@ -590,6 +598,7 @@ public abstract class V1SchemeVerifier {
          * Returns the signing certificate if the provided {@link SignerInfo} verifies against the
          * contents of the provided signature file, or {@code null} if it does not verify.
          */
+        @SuppressInsecureCipherModeCheckerReviewed
         private X509Certificate verifySignerInfoAgainstSigFile(
                 SignedData signedData,
                 Collection<X509Certificate> signedDataCertificates,
