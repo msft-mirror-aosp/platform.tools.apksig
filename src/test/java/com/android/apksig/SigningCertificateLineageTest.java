@@ -845,6 +845,7 @@ public class SigningCertificateLineageTest {
         assertFalse(SigningCertificateLineage.checkLineagesCompatibility(oldLineage, newLineage));
     }
 
+    @Test
     public void testMergeLineageWithTwoEqualLineagesReturnsMergedLineage() throws Exception {
         // The mergeLineageWith method is intended to merge two separate lineages into a superset
         // that spans both lineages. This method verifies if both lineages have the same signers,
