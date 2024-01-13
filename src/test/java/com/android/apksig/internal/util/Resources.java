@@ -17,6 +17,7 @@
 package com.android.apksig.internal.util;
 
 import com.android.apksig.ApkSignerTest;
+import com.android.apksig.KeyConfig;
 import com.android.apksig.SigningCertificateLineage;
 import com.android.apksig.util.DataSource;
 
@@ -131,7 +132,9 @@ public final class Resources {
         PrivateKey privateKey = toPrivateKey(cls, resourcePrefix + ".pk8");
         X509Certificate cert = Resources.toCertificate(cls,
                 resourcePrefix + ".x509.pem");
-        return new SigningCertificateLineage.SignerConfig.Builder(privateKey, cert).build();
+        return new SigningCertificateLineage.SignerConfig.Builder(
+                        new KeyConfig.Jca(privateKey), cert)
+                .build();
     }
 
     public static DataSource toDataSource(Class<?> cls, String dataSourceResourceName)
