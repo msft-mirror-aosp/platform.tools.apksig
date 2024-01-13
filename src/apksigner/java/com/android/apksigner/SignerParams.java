@@ -16,6 +16,7 @@
 
 package com.android.apksigner;
 
+import com.android.apksig.KeyConfig;
 import com.android.apksig.SigningCertificateLineage;
 import com.android.apksig.SigningCertificateLineage.SignerCapabilities;
 import com.android.apksig.internal.util.X509CertificateUtils;
@@ -44,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
+
 import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -68,7 +70,7 @@ public class SignerParams {
 
     private String v1SigFileBasename;
 
-    private PrivateKey privateKey;
+    private KeyConfig mKeyConfig;
     private List<X509Certificate> certs;
     private final SignerCapabilities.Builder signerCapabilitiesBuilder =
             new SignerCapabilities.Builder();
@@ -144,8 +146,19 @@ public class SignerParams {
         this.v1SigFileBasename = v1SigFileBasename;
     }
 
+    /**
+     * Returns the signing key of this signer.
+     *
+     * @deprecated Use {@link #getKeyConfig()} instead of accessing a {@link PrivateKey}. If the
+     *     user of ApkSigner is signing with a KMS instead of JCA, this method will return null.
+     */
+    @Deprecated
     public PrivateKey getPrivateKey() {
-        return privateKey;
+        return mKeyConfig.match(jca -> jca.privateKey, kms -> null);
+    }
+
+    public KeyConfig getKeyConfig() {
+        return mKeyConfig;
     }
 
     public List<X509Certificate> getCerts() {
@@ -186,7 +199,7 @@ public class SignerParams {
                 && (keyFile == null)
                 && (certFile == null)
                 && (v1SigFileBasename == null)
-                && (privateKey == null)
+                && (mKeyConfig == null)
                 && (certs == null);
     }
 
@@ -355,7 +368,7 @@ public class SignerParams {
                             + ". Wrong password?",
                     e);
         }
-        this.privateKey = key;
+        this.mKeyConfig = new KeyConfig.Jca(key);
         Certificate[] certChain = ks.getCertificateChain(keyAlias);
         if ((certChain == null) || (certChain.length == 0)) {
             throw new ParameterException(
@@ -454,7 +467,7 @@ public class SignerParams {
 
         // Load the private key from its PKCS #8 encoded form.
         try {
-            privateKey = loadPkcs8EncodedPrivateKey(keySpec);
+            mKeyConfig = new KeyConfig.Jca(loadPkcs8EncodedPrivateKey(keySpec));
         } catch (InvalidKeySpecException e) {
             throw new InvalidKeySpecException(
                     "Failed to load PKCS #8 encoded private key from " + keyFile, e);
