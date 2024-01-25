@@ -53,8 +53,6 @@ import com.android.apksig.util.DataSinks;
 import com.android.apksig.util.DataSource;
 import com.android.apksig.zip.ZipFormatException;
 
-import com.google.security.annotations.SuppressInsecureCipherModeCheckerReviewed;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
@@ -598,7 +596,6 @@ public abstract class V1SchemeVerifier {
          * Returns the signing certificate if the provided {@link SignerInfo} verifies against the
          * contents of the provided signature file, or {@code null} if it does not verify.
          */
-        @SuppressInsecureCipherModeCheckerReviewed
         private X509Certificate verifySignerInfoAgainstSigFile(
                 SignedData signedData,
                 Collection<X509Certificate> signedDataCertificates,
