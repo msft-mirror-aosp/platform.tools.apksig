@@ -32,6 +32,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.apksig.ApkVerifier.Issue;
@@ -76,6 +77,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Security;
+import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -846,6 +848,8 @@ public class ApkSignerTest {
     public void testDeterministicDsaSignedVerifies() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         try {
+            // TODO(b/319494004) see if external/bouncycastle can support this algorithm
+            assumeSHA1withDetDSAIsSupported();
             List<ApkSigner.SignerConfig> signers =
                     Collections.singletonList(getDeterministicDsaSignerConfigFromResources("dsa-2048"));
             String in = "original.apk";
@@ -869,6 +873,8 @@ public class ApkSignerTest {
     public void testDeterministicDsaSigningIsDeterministic() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         try {
+            // TODO(b/319494004) see if external/bouncycastle can support this algorithm
+            assumeSHA1withDetDSAIsSupported();
             List<ApkSigner.SignerConfig> signers =
                     Collections.singletonList(getDeterministicDsaSignerConfigFromResources("dsa-2048"));
             String in = "original.apk";
@@ -880,6 +886,16 @@ public class ApkSignerTest {
             assertFileContentsEqual(first, second);
         } finally {
             Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME);
+        }
+    }
+
+    private void assumeSHA1withDetDSAIsSupported() {
+        try {
+            Signature.getInstance("SHA1withDetDSA");
+        } catch (NoSuchAlgorithmException e) {
+            assumeNoException(
+                    "We should be running with a provider that supports SHA1withDetDSA",
+                    e);
         }
     }
 
