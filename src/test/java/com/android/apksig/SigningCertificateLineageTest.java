@@ -28,26 +28,26 @@ import com.android.apksig.apk.ApkFormatException;
 import com.android.apksig.internal.apk.ApkSigningBlockUtils;
 import com.android.apksig.internal.apk.v3.V3SchemeConstants;
 import com.android.apksig.internal.apk.v3.V3SchemeSigner;
-import com.android.apksig.internal.util.AndroidSdkVersion;
 import com.android.apksig.internal.util.ByteBufferUtils;
 import com.android.apksig.internal.util.Resources;
 import com.android.apksig.util.DataSource;
 
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.security.cert.X509Certificate;
 import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SigningCertificateLineageTest {
@@ -1147,7 +1147,7 @@ public class SigningCertificateLineageTest {
                         resourcePrefix + ".pk8");
         X509Certificate cert = Resources.toCertificate(SigningCertificateLineageTest.class,
                 resourcePrefix + ".x509.pem");
-        return new SignerConfig.Builder(privateKey, cert).build();
+        return new SignerConfig.Builder(new KeyConfig.Jca(privateKey), cert).build();
     }
 
     private static DefaultApkSignerEngine.SignerConfig getApkSignerEngineSignerConfigFromResources(
@@ -1164,7 +1164,9 @@ public class SigningCertificateLineageTest {
         X509Certificate cert = Resources.toCertificate(SigningCertificateLineageTest.class,
                 resourcePrefix + ".x509.pem");
         DefaultApkSignerEngine.SignerConfig.Builder configBuilder =
-                new DefaultApkSignerEngine.SignerConfig.Builder(resourcePrefix, privateKey,
+                new DefaultApkSignerEngine.SignerConfig.Builder(
+                        resourcePrefix,
+                        new KeyConfig.Jca(privateKey),
                         Collections.singletonList(cert));
         if (minSdkVersion > 0) {
             configBuilder.setLineageForMinSdkVersion(lineage, minSdkVersion);
