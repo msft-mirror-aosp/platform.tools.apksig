@@ -16,6 +16,12 @@
 
 package com.android.apksig;
 
+import static com.android.apksig.internal.util.Resources.FIRST_RSA_1024_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.FIRST_RSA_2048_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.SECOND_RSA_1024_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.THIRD_RSA_2048_SIGNER_RESOURCE_NAME;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -55,15 +61,6 @@ public class SigningCertificateLineageTest {
     // createLineageWithSignersFromResources and updateLineageWithSignerFromResources will add the
     // SignerConfig for the signers added to the Lineage to this list.
     private List<SignerConfig> mSigners;
-
-    // All signers with the same prefix and an _X suffix were signed with the private key of the
-    // (X-1) signer.
-    private static final String FIRST_RSA_1024_SIGNER_RESOURCE_NAME = "rsa-1024";
-    private static final String SECOND_RSA_1024_SIGNER_RESOURCE_NAME = "rsa-1024_2";
-
-    private static final String FIRST_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048";
-    private static final String SECOND_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048_2";
-    private static final String THIRD_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048_3";
 
     @Before
     public void setUp() {
