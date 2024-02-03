@@ -23,6 +23,19 @@ import static com.android.apksig.SigningCertificateLineageTest.assertLineageCont
 import static com.android.apksig.SigningCertificateLineageTest.assertLineageContainsExpectedSignersWithCapabilities;
 import static com.android.apksig.apk.ApkUtils.SOURCE_STAMP_CERTIFICATE_HASH_ZIP_ENTRY_NAME;
 import static com.android.apksig.apk.ApkUtils.findZipSections;
+import static com.android.apksig.internal.util.Resources.EC_P256_2_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.EC_P256_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.FIRST_RSA_2048_SIGNER_CERT_WITH_NEGATIVE_MODULUS;
+import static com.android.apksig.internal.util.Resources.FIRST_RSA_2048_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.FIRST_RSA_4096_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.LINEAGE_EC_P256_2_SIGNERS_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.LINEAGE_RSA_2048_2_SIGNERS_2_3_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.LINEAGE_RSA_2048_2_SIGNERS_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.LINEAGE_RSA_2048_3_SIGNERS_1_NO_CAPS_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.LINEAGE_RSA_2048_3_SIGNERS_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.LINEAGE_RSA_2048_TO_RSA_4096_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.THIRD_RSA_2048_SIGNER_RESOURCE_NAME;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -96,35 +109,6 @@ public class ApkSignerTest {
      * failures.
      */
     private static final boolean KEEP_FAILING_OUTPUT_AS_FILES = false;
-
-    // All signers with the same prefix and an _X suffix were signed with the private key of the
-    // (X-1) signer.
-    static final String FIRST_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048";
-    static final String SECOND_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048_2";
-    static final String THIRD_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048_3";
-
-    static final String FIRST_RSA_4096_SIGNER_RESOURCE_NAME = "rsa-4096";
-
-    private static final String EC_P256_SIGNER_RESOURCE_NAME = "ec-p256";
-    private static final String EC_P256_2_SIGNER_RESOURCE_NAME = "ec-p256_2";
-
-    // This is the same cert as above with the modulus reencoded to remove the leading 0 sign bit.
-    private static final String FIRST_RSA_2048_SIGNER_CERT_WITH_NEGATIVE_MODULUS =
-            "rsa-2048_negmod.x509.der";
-
-    private static final String LINEAGE_RSA_2048_2_SIGNERS_RESOURCE_NAME =
-            "rsa-2048-lineage-2-signers";
-    private static final String LINEAGE_RSA_2048_3_SIGNERS_RESOURCE_NAME =
-            "rsa-2048-lineage-3-signers";
-    private static final String LINEAGE_RSA_2048_3_SIGNERS_1_NO_CAPS_RESOURCE_NAME =
-            "rsa-2048-lineage-3-signers-1-no-caps";
-    private static final String LINEAGE_RSA_2048_2_SIGNERS_2_3_RESOURCE_NAME =
-            "rsa-2048-lineage-2-signers-2-3";
-    private static final String LINEAGE_RSA_2048_TO_RSA_4096_RESOURCE_NAME =
-            "rsa-2048-to-4096-lineage-2-signers";
-
-    private static final String LINEAGE_EC_P256_2_SIGNERS_RESOURCE_NAME =
-            "ec-p256-lineage-2-signers";
 
     private static final SignerCapabilities DEFAULT_CAPABILITIES =
             new SignerCapabilities.Builder().build();
