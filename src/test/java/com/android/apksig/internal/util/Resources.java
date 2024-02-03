@@ -48,6 +48,37 @@ import java.util.Locale;
 public final class Resources {
     private Resources() {}
 
+    // All signers with the same prefix and an _X suffix were signed with the private key of the
+    // (X-1) signer.
+    public static final String FIRST_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048";
+    public static final String SECOND_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048_2";
+    public static final String THIRD_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048_3";
+    public static final String FIRST_RSA_1024_SIGNER_RESOURCE_NAME = "rsa-1024";
+    public static final String SECOND_RSA_1024_SIGNER_RESOURCE_NAME = "rsa-1024_2";
+
+    public static final String FIRST_RSA_4096_SIGNER_RESOURCE_NAME = "rsa-4096";
+
+    public static final String EC_P256_SIGNER_RESOURCE_NAME = "ec-p256";
+    public static final String EC_P256_2_SIGNER_RESOURCE_NAME = "ec-p256_2";
+
+    // This is the same cert as above with the modulus reencoded to remove the leading 0 sign bit.
+    public static final String FIRST_RSA_2048_SIGNER_CERT_WITH_NEGATIVE_MODULUS =
+            "rsa-2048_negmod.x509.der";
+
+    public static final String LINEAGE_RSA_2048_2_SIGNERS_RESOURCE_NAME =
+            "rsa-2048-lineage-2-signers";
+    public static final String LINEAGE_RSA_2048_3_SIGNERS_RESOURCE_NAME =
+            "rsa-2048-lineage-3-signers";
+    public static final String LINEAGE_RSA_2048_3_SIGNERS_1_NO_CAPS_RESOURCE_NAME =
+            "rsa-2048-lineage-3-signers-1-no-caps";
+    public static final String LINEAGE_RSA_2048_2_SIGNERS_2_3_RESOURCE_NAME =
+            "rsa-2048-lineage-2-signers-2-3";
+    public static final String LINEAGE_RSA_2048_TO_RSA_4096_RESOURCE_NAME =
+            "rsa-2048-to-4096-lineage-2-signers";
+
+    public static final String LINEAGE_EC_P256_2_SIGNERS_RESOURCE_NAME =
+            "ec-p256-lineage-2-signers";
+
     public static byte[] toByteArray(Class<?> cls, String resourceName) throws IOException {
         try (InputStream in = cls.getResourceAsStream(resourceName)) {
             if (in == null) {

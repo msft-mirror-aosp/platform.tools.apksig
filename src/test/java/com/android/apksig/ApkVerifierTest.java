@@ -16,13 +16,14 @@
 
 package com.android.apksig;
 
-import static com.android.apksig.ApkSignerTest.FIRST_RSA_2048_SIGNER_RESOURCE_NAME;
-import static com.android.apksig.ApkSignerTest.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
 import static com.android.apksig.ApkSignerTest.assertResultContainsSigners;
 import static com.android.apksig.ApkSignerTest.assertV31SignerTargetsMinApiLevel;
 import static com.android.apksig.Constants.VERSION_APK_SIGNATURE_SCHEME_V2;
 import static com.android.apksig.Constants.VERSION_APK_SIGNATURE_SCHEME_V3;
 import static com.android.apksig.Constants.VERSION_APK_SIGNATURE_SCHEME_V31;
+import static com.android.apksig.internal.util.Resources.FIRST_RSA_2048_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -45,13 +46,6 @@ import com.android.apksig.internal.util.Resources;
 import com.android.apksig.util.DataSource;
 import com.android.apksig.util.DataSources;
 
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.security.Provider;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,18 +56,25 @@ import org.junit.runners.JUnit4;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
