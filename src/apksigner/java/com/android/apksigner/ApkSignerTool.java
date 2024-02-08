@@ -16,6 +16,8 @@
 
 package com.android.apksigner;
 
+import static com.android.apksig.Constants.LIBRARY_PAGE_ALIGNMENT_BYTES;
+
 import com.android.apksig.ApkSigner;
 import com.android.apksig.ApkVerifier;
 import com.android.apksig.SigningCertificateLineage;
@@ -133,6 +135,8 @@ public class ApkSignerTool {
         boolean alignFileSize = false;
         boolean verityEnabled = false;
         boolean debuggableApkPermitted = true;
+        boolean alignmentPreserved = false;
+        int libPageAlignment = LIBRARY_PAGE_ALIGNMENT_BYTES;
         int minSdkVersion = 1;
         boolean minSdkVersionSpecified = false;
         int maxSdkVersion = Integer.MAX_VALUE;
@@ -191,11 +195,23 @@ public class ApkSignerTool {
                 verityEnabled = optionsParser.getOptionalBooleanValue(true);
             } else if ("debuggable-apk-permitted".equals(optionName)) {
                 debuggableApkPermitted = optionsParser.getOptionalBooleanValue(true);
+            } else if ("alignment-preserved".equals(optionName)) {
+                alignmentPreserved = optionsParser.getOptionalBooleanValue(true);
+            } else if ("lib-page-alignment".equals(optionName)) {
+                libPageAlignment = optionsParser.getRequiredIntValue(
+                        "Native library page alignment size in bytes");
             } else if ("next-signer".equals(optionName)) {
                 if (!signerParams.isEmpty()) {
                     signers.add(signerParams);
                     signerParams = new SignerParams();
                 }
+            } else if ("signer-for-min-sdk-version".equals(optionName)) {
+                if (!signerParams.isEmpty()) {
+                    signers.add(signerParams);
+                    signerParams = new SignerParams();
+                }
+                signerParams.setMinSdkVersion(optionsParser.getRequiredIntValue(
+                        "Mininimum API Level for signing config"));
             } else if ("ks".equals(optionName)) {
                 signerParams.setKeystoreFile(optionsParser.getRequiredValue("KeyStore file"));
             } else if ("ks-key-alias".equals(optionName)) {
@@ -236,8 +252,12 @@ public class ApkSignerTool {
                 signerParams.setKeyFile(optionsParser.getRequiredValue("Private key file"));
             } else if ("cert".equals(optionName)) {
                 signerParams.setCertFile(optionsParser.getRequiredValue("Certificate file"));
+            } else if ("signer-lineage".equals(optionName)) {
+                File lineageFile = new File(
+                        optionsParser.getRequiredValue("Lineage file for signing config"));
+                signerParams.setSigningCertificateLineage(getLineageFromInputFile(lineageFile));
             } else if ("lineage".equals(optionName)) {
-                File lineageFile = new File(optionsParser.getRequiredValue("Lineage File"));
+                File lineageFile = new File(optionsParser.getRequiredValue("Lineage file"));
                 lineage = getLineageFromInputFile(lineageFile);
             } else if ("v".equals(optionName) || "verbose".equals(optionName)) {
                 verbose = optionsParser.getOptionalBooleanValue(true);
@@ -367,7 +387,9 @@ public class ApkSignerTool {
                         .setDebuggableApkPermitted(debuggableApkPermitted)
                         .setSigningCertificateLineage(lineage)
                         .setMinSdkVersionForRotation(rotationMinSdkVersion)
-                        .setRotationTargetsDevRelease(rotationTargetsDevRelease);
+                        .setRotationTargetsDevRelease(rotationTargetsDevRelease)
+                        .setAlignmentPreserved(alignmentPreserved)
+                        .setLibraryPageAlignmentBytes(libPageAlignment);
         if (minSdkVersionSpecified) {
             apkSignerBuilder.setMinSdkVersion(minSdkVersion);
         }
@@ -435,11 +457,15 @@ public class ApkSignerTool {
         } else {
             throw new RuntimeException("Neither KeyStore key alias nor private key file available");
         }
-        ApkSigner.SignerConfig signerConfig =
-                new ApkSigner.SignerConfig.Builder(
-                        v1SigBasename, signer.getPrivateKey(), signer.getCerts(),
-                        deterministicDsaSigning)
-                        .build();
+        ApkSigner.SignerConfig.Builder signerConfigBuilder = new ApkSigner.SignerConfig.Builder(
+                v1SigBasename, signer.getPrivateKey(), signer.getCerts(), deterministicDsaSigning);
+        SigningCertificateLineage lineage = signer.getSigningCertificateLineage();
+        int minSdkVersion = signer.getMinSdkVersion();
+        if (minSdkVersion > 0) {
+            signerConfigBuilder.setLineageForMinSdkVersion(lineage, minSdkVersion);
+        }
+        ApkSigner.SignerConfig signerConfig = signerConfigBuilder.build();
+
         return signerConfig;
     }
 

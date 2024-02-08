@@ -65,6 +65,7 @@ coverage_java_test(
     resources = glob([
         "src/test/resources/**/*",
     ]),
+    jvm_flags = ["-Xmx1024m"],
     test_class = "com.android.apksig.AllTests",
     deps = [
         ":apksig-all",
