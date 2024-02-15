@@ -16,6 +16,8 @@
 
 package com.android.apksigner;
 
+import static com.android.apksig.Constants.LIBRARY_PAGE_ALIGNMENT_BYTES;
+
 import com.android.apksig.ApkSigner;
 import com.android.apksig.ApkVerifier;
 import com.android.apksig.SigningCertificateLineage;
@@ -150,6 +152,8 @@ public class ApkSignerTool {
         boolean alignFileSize = false;
         boolean verityEnabled = false;
         boolean debuggableApkPermitted = true;
+        boolean alignmentPreserved = false;
+        int libPageAlignment = LIBRARY_PAGE_ALIGNMENT_BYTES;
         int minSdkVersion = 1;
         boolean minSdkVersionSpecified = false;
         int maxSdkVersion = Integer.MAX_VALUE;
@@ -208,6 +212,11 @@ public class ApkSignerTool {
                 verityEnabled = optionsParser.getOptionalBooleanValue(true);
             } else if ("debuggable-apk-permitted".equals(optionName)) {
                 debuggableApkPermitted = optionsParser.getOptionalBooleanValue(true);
+            } else if ("alignment-preserved".equals(optionName)) {
+                alignmentPreserved = optionsParser.getOptionalBooleanValue(true);
+            } else if ("lib-page-alignment".equals(optionName)) {
+                libPageAlignment = optionsParser.getRequiredIntValue(
+                        "Native library page alignment size in bytes");
             } else if ("next-signer".equals(optionName)) {
                 if (!signerParams.isEmpty()) {
                     signers.add(signerParams);
@@ -395,7 +404,9 @@ public class ApkSignerTool {
                         .setDebuggableApkPermitted(debuggableApkPermitted)
                         .setSigningCertificateLineage(lineage)
                         .setMinSdkVersionForRotation(rotationMinSdkVersion)
-                        .setRotationTargetsDevRelease(rotationTargetsDevRelease);
+                        .setRotationTargetsDevRelease(rotationTargetsDevRelease)
+                        .setAlignmentPreserved(alignmentPreserved)
+                        .setLibraryPageAlignmentBytes(libPageAlignment);
         if (minSdkVersionSpecified) {
             apkSignerBuilder.setMinSdkVersion(minSdkVersion);
         }
@@ -463,8 +474,12 @@ public class ApkSignerTool {
         } else {
             throw new RuntimeException("Neither KeyStore key alias nor private key file available");
         }
-        ApkSigner.SignerConfig.Builder signerConfigBuilder = new ApkSigner.SignerConfig.Builder(
-                v1SigBasename, signer.getPrivateKey(), signer.getCerts(), deterministicDsaSigning);
+        ApkSigner.SignerConfig.Builder signerConfigBuilder =
+                new ApkSigner.SignerConfig.Builder(
+                        v1SigBasename,
+                        signer.getKeyConfig(),
+                        signer.getCerts(),
+                        deterministicDsaSigning);
         SigningCertificateLineage lineage = signer.getSigningCertificateLineage();
         int minSdkVersion = signer.getMinSdkVersion();
         if (minSdkVersion > 0) {
@@ -831,7 +846,8 @@ public class ApkSignerTool {
             loadPrivateKeyAndCerts(oldSignerParams, passwordRetriever);
             SigningCertificateLineage.SignerConfig oldSignerConfig =
                     new SigningCertificateLineage.SignerConfig.Builder(
-                            oldSignerParams.getPrivateKey(), oldSignerParams.getCerts().get(0))
+                                    oldSignerParams.getKeyConfig(),
+                                    oldSignerParams.getCerts().get(0))
                             .build();
 
             // TOOD: don't require private key
@@ -839,7 +855,8 @@ public class ApkSignerTool {
             loadPrivateKeyAndCerts(newSignerParams, passwordRetriever);
             SigningCertificateLineage.SignerConfig newSignerConfig =
                     new SigningCertificateLineage.SignerConfig.Builder(
-                            newSignerParams.getPrivateKey(), newSignerParams.getCerts().get(0))
+                                    newSignerParams.getKeyConfig(),
+                                    newSignerParams.getCerts().get(0))
                             .build();
 
             // ok we're all set up, let's rotate!
@@ -929,7 +946,7 @@ public class ApkSignerTool {
                 loadPrivateKeyAndCerts(signerParams, passwordRetriever);
                 SigningCertificateLineage.SignerConfig signerConfig =
                         new SigningCertificateLineage.SignerConfig.Builder(
-                                signerParams.getPrivateKey(), signerParams.getCerts().get(0))
+                                        signerParams.getKeyConfig(), signerParams.getCerts().get(0))
                                 .build();
                 try {
                     // since only the caller specified capabilities will be updated a direct
