@@ -62,15 +62,15 @@ coverage_java_test(
     srcs = glob([
         "src/test/java/com/android/apksig/**/*.java",
     ]),
+    jvm_flags = ["-Xmx1024m"],
     resources = glob([
         "src/test/resources/**/*",
     ]),
-    jvm_flags = ["-Xmx1024m"],
     test_class = "com.android.apksig.AllTests",
     deps = [
         ":apksig-all",
         "@maven//:junit.junit",
-        "@maven//:org.bouncycastle.bcprov-jdk15on",
+        "@maven//:org.bouncycastle.bcprov-jdk18on",
         "@maven//:org.conscrypt.conscrypt-openjdk-uber",
     ],
 )
