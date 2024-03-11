@@ -19,6 +19,7 @@ package com.android.apksig.kms;
 import com.android.apksig.KeyConfig;
 import com.android.apksig.SignerEngine;
 import com.android.apksig.kms.aws.AwsSignerEngine;
+import com.android.apksig.kms.gcp.GcpSignerEngine;
 
 /** Performs cryptographic signing with a Key Management Service (KMS). */
 public abstract class KmsSignerEngine implements SignerEngine {
@@ -40,6 +41,8 @@ public abstract class KmsSignerEngine implements SignerEngine {
         switch (kmsConfig.kmsType) {
             case AWS:
                 return new AwsSignerEngine(kmsConfig.keyAlias, jcaSignatureAlgorithm);
+            case GCP:
+                return new GcpSignerEngine(kmsConfig.keyAlias);
             default:
                 throw new KmsException(kmsConfig.kmsType, "Unsupported KMS");
         }
