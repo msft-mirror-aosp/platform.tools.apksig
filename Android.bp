@@ -38,6 +38,11 @@ java_library_host {
     srcs: [
         "src/main/java/**/*.java",
     ],
+    libs: [
+        "awssdk-kms",
+        "awssdk-url-connection-client",
+        "slf4j-api",
+    ],
     java_version: "1.8",
     target: {
         windows: {
@@ -48,11 +53,10 @@ java_library_host {
 
 // apksigner command-line tool for signing APKs and verifying their signatures
 // ============================================================
-java_binary_host {
-    name: "apksigner",
+java_defaults {
+    name: "apksigner-defaults",
     srcs: ["src/apksigner/java/**/*.java"],
     java_resource_dirs: ["src/apksigner/java"],
-    wrapper: "etc/apksigner",
     manifest: "src/apksigner/apksigner.mf",
     static_libs: [
         "apksig",
@@ -63,6 +67,14 @@ java_binary_host {
         not_windows: {
             jni_libs: ["libconscrypt_openjdk_jni"],
         },
+    },
+}
+
+java_binary_host {
+    name: "apksigner",
+    defaults: ["apksigner-defaults"],
+    wrapper: "etc/apksigner",
+    target: {
         windows: {
             enabled: true,
             wrapper: "etc/apksigner.bat",
@@ -70,14 +82,38 @@ java_binary_host {
     },
 }
 
+java_binary_host {
+    name: "apksigner-kms",
+    defaults: ["apksigner-defaults"],
+    wrapper: "etc/apksigner-kms",
+    static_libs: [
+        "awssdk-kms",
+        "awssdk-url-connection-client",
+        "slf4j-api",
+    ],
+    target: {
+        windows: {
+            enabled: true,
+            wrapper: "etc/apksigner-kms.bat",
+        },
+    },
+}
+
 java_test_host {
     name: "apksig-test",
     srcs: ["src/test/java/**/*.java"],
+    exclude_srcs: [
+        "src/test/java/com/android/apksig/kms/KeyWrapper.java",
+        "src/test/java/com/android/apksig/kms/aws/AwsTestData.java",
+    ],
     java_resource_dirs: ["src/test/resources"],
     static_libs: [
         "apksig",
+        "awssdk-kms",
+        "awssdk-url-connection-client",
         "bouncycastle-unbundled",
         "conscrypt-unbundled",
-        "junit"
-    ]
+        "junit",
+        "slf4j-api",
+    ],
 }
