@@ -29,18 +29,19 @@ public class SignerEngineFactory {
      * KeyConfig.Kms}, signatureAlgorithm and signatureAlgorithmParameterSpec are ignored.
      *
      * @param keyConfig kms key type and alias, or a local private key.
-     * @param jcaSignatureAlgorithm which signature algorithm to use for signing.
-     * @param algorithmParameterSpec optional, any parameters needed by the signature alogrithm.
+     * @param signatureAlgorithm required if keyConfig is {@link KeyConfig.Jca}, ignored if
+     *     keyConfig is {@link KeyConfig.Kms}.
+     * @param algorithmParameterSpec optional, ignored if keyConfig is {@link KeyConfig.Kms}.
      * @return a concrete {@link SignerEngine} implementation.
      */
     public static SignerEngine getImplementation(
             KeyConfig keyConfig,
-            String jcaSignatureAlgorithm,
+            String signatureAlgorithm,
             AlgorithmParameterSpec algorithmParameterSpec) {
         return keyConfig.match(
                 jca ->
                         new JcaSignerEngine(
-                                jca.privateKey, jcaSignatureAlgorithm, algorithmParameterSpec),
-                kms -> KmsSignerEngine.fromKmsConfig(kms, jcaSignatureAlgorithm));
+                                jca.privateKey, signatureAlgorithm, algorithmParameterSpec),
+                KmsSignerEngine::fromKmsConfig);
     }
 }
