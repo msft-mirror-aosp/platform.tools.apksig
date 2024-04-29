@@ -37,6 +37,25 @@ java_library_host {
     name: "apksig",
     srcs: [
         "src/main/java/**/*.java",
+        "src/stub/java/**/*.java",
+    ],
+    exclude_srcs: [
+        "src/main/java/com/android/apksig/kms/aws/**/*.java",
+        "src/main/java/com/android/apksig/kms/gcp/**/*.java",
+        "src/main/java/com/android/apksig/kms/KmsSignerEngine.java",
+    ],
+    java_version: "1.8",
+    target: {
+        windows: {
+            enabled: true,
+        },
+    },
+}
+
+java_library_host {
+    name: "apksig-kms",
+    srcs: [
+        "src/main/java/**/*.java",
     ],
     libs: [
         "awssdk-kms",
@@ -60,10 +79,7 @@ java_defaults {
     srcs: ["src/apksigner/java/**/*.java"],
     java_resource_dirs: ["src/apksigner/java"],
     manifest: "src/apksigner/apksigner.mf",
-    static_libs: [
-        "apksig",
-        "conscrypt-unbundled",
-    ],
+    static_libs: ["conscrypt-unbundled"],
     java_version: "1.8",
     target: {
         not_windows: {
@@ -76,6 +92,7 @@ java_binary_host {
     name: "apksigner",
     defaults: ["apksigner-defaults"],
     wrapper: "etc/apksigner",
+    static_libs: ["apksig"],
     target: {
         windows: {
             enabled: true,
@@ -89,6 +106,7 @@ java_binary_host {
     defaults: ["apksigner-defaults"],
     wrapper: "etc/apksigner-kms",
     static_libs: [
+        "apksig-kms",
         "awssdk-kms",
         "awssdk-url-connection-client",
         "conscrypt-unbundled",
