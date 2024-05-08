@@ -20,6 +20,7 @@ import static com.android.apksig.internal.util.Resources.FIRST_RSA_1024_SIGNER_R
 import static com.android.apksig.internal.util.Resources.FIRST_RSA_2048_SIGNER_RESOURCE_NAME;
 import static com.android.apksig.internal.util.Resources.SECOND_RSA_1024_SIGNER_RESOURCE_NAME;
 import static com.android.apksig.internal.util.Resources.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.TEST_GCP_KEY_RING;
 import static com.android.apksig.internal.util.Resources.THIRD_RSA_2048_SIGNER_RESOURCE_NAME;
 
 import static org.junit.Assert.assertEquals;
@@ -39,6 +40,8 @@ import com.android.apksig.internal.util.ByteBufferUtils;
 import com.android.apksig.internal.util.Resources;
 import com.android.apksig.kms.aws.AwsSignerConfigGenerator;
 import com.android.apksig.kms.aws.KeyAliasClient;
+import com.android.apksig.kms.gcp.GcpSignerConfigGenerator;
+import com.android.apksig.kms.gcp.KeyRingClient;
 import com.android.apksig.util.DataSource;
 
 import org.junit.Before;
@@ -315,6 +318,58 @@ public class SigningCertificateLineageTest {
         SigningCertificateLineage lineage =
                 createLineageWithSignersFromResources(
                         AwsSignerConfigGenerator.getLineageSignerConfigFromResources(
+                                getClass(), FIRST_RSA_2048_SIGNER_RESOURCE_NAME),
+                        Resources.toLineageSignerConfig(
+                                getClass(), SECOND_RSA_1024_SIGNER_RESOURCE_NAME));
+        SignerConfig oldSigner = mSigners.get(mSigners.size() - 1);
+        SignerConfig newSigner =
+                Resources.toLineageSignerConfig(getClass(), THIRD_RSA_2048_SIGNER_RESOURCE_NAME);
+        List<Boolean> newSignerCapabilityValues = Arrays.asList(false, false, false, false, false);
+        lineage =
+                lineage.spawnDescendant(
+                        oldSigner, newSigner, buildSignerCapabilities(newSignerCapabilityValues));
+        SignerCapabilities newSignerCapabilities = lineage.getSignerCapabilities(newSigner);
+        assertExpectedCapabilityValues(newSignerCapabilities, newSignerCapabilityValues);
+    }
+
+    @Test
+    public void
+            testRotationWithExitingLineageAndNonDefaultCapabilitiesForNewSigner_previousSignerGcp()
+                    throws Exception {
+        try (KeyRingClient keyRingClient = new KeyRingClient(TEST_GCP_KEY_RING)) {
+            keyRingClient.getKeyRing();
+        } catch (Exception e) {
+            assumeNoException("Test cannot run without access to test data in GCP", e);
+        }
+        SigningCertificateLineage lineage =
+                createLineageWithSignersFromResources(
+                        Resources.toLineageSignerConfig(
+                                getClass(), FIRST_RSA_2048_SIGNER_RESOURCE_NAME),
+                        GcpSignerConfigGenerator.getLineageSignerConfigFromResources(
+                                getClass(), SECOND_RSA_2048_SIGNER_RESOURCE_NAME));
+        SignerConfig oldSigner = mSigners.get(mSigners.size() - 1);
+        SignerConfig newSigner =
+                Resources.toLineageSignerConfig(getClass(), THIRD_RSA_2048_SIGNER_RESOURCE_NAME);
+        List<Boolean> newSignerCapabilityValues = Arrays.asList(false, false, false, false, false);
+        lineage =
+                lineage.spawnDescendant(
+                        oldSigner, newSigner, buildSignerCapabilities(newSignerCapabilityValues));
+        SignerCapabilities newSignerCapabilities = lineage.getSignerCapabilities(newSigner);
+        assertExpectedCapabilityValues(newSignerCapabilities, newSignerCapabilityValues);
+    }
+
+    @Test
+    public void
+            testRotationWithExitingLineageAndNonDefaultCapabilitiesForNewSigner_originalSignerGcp()
+                    throws Exception {
+        try (KeyRingClient keyRingClient = new KeyRingClient(TEST_GCP_KEY_RING)) {
+            keyRingClient.getKeyRing();
+        } catch (Exception e) {
+            assumeNoException("Test cannot run without access to test data in GCP", e);
+        }
+        SigningCertificateLineage lineage =
+                createLineageWithSignersFromResources(
+                        GcpSignerConfigGenerator.getLineageSignerConfigFromResources(
                                 getClass(), FIRST_RSA_2048_SIGNER_RESOURCE_NAME),
                         Resources.toLineageSignerConfig(
                                 getClass(), SECOND_RSA_1024_SIGNER_RESOURCE_NAME));
@@ -1025,18 +1080,18 @@ public class SigningCertificateLineageTest {
 
     /**
      * Verifies the specified {@code SigningCertificateLinage.SignerCapabilities} contains the
-     * expected values from the provided {@code List}. The {@code List} should contain
-     * {@code boolean} values to be verified against the
-     * {@code SigningCertificateLinage.SignerCapabilities} methods in the following order:
+     * expected values from the provided {@code List}. The {@code List} should contain {@code
+     * boolean} values to be verified against the {@code
+     * SigningCertificateLinage.SignerCapabilities} methods in the following order:
      *
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasInstalledData}
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasSharedUid}
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasPermission}
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasRollback}
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasAuth}
+     * <p>{@mcode SigningCertificateLineage.SignerCapabilities.hasInstalledData} {@mcode
+     * SigningCertificateLineage.SignerCapabilities.hasSharedUid} {@mcode
+     * SigningCertificateLineage.SignerCapabilities.hasPermission} {@mcode
+     * SigningCertificateLineage.SignerCapabilities.hasRollback} {@mcode
+     * SigningCertificateLineage.SignerCapabilities.hasAuth}
      */
-    private void assertExpectedCapabilityValues(SignerCapabilities capabilities,
-            List<Boolean> expectedCapabilityValues) {
+    private void assertExpectedCapabilityValues(
+            SignerCapabilities capabilities, List<Boolean> expectedCapabilityValues) {
         assertTrue("The expectedCapabilityValues do not contain the expected number of elements",
                 expectedCapabilityValues.size() >= 5);
         assertEquals(
