@@ -16,9 +16,10 @@
 
 package com.android.apksig.kms.gcp;
 
+import static com.android.apksig.kms.KmsType.GCP;
+
+import com.android.apksig.SignerEngine;
 import com.android.apksig.kms.KmsException;
-import com.android.apksig.kms.KmsSignerEngine;
-import com.android.apksig.kms.KmsType;
 
 import com.google.cloud.kms.v1.AsymmetricSignRequest;
 import com.google.cloud.kms.v1.CryptoKeyVersionName;
@@ -28,7 +29,8 @@ import com.google.protobuf.ByteString;
 import java.io.IOException;
 
 /** Signs data using Google Cloud Platform. */
-public class GcpSignerEngine extends KmsSignerEngine {
+public class GcpSignerEngine implements SignerEngine {
+    private final String mKeyAlias;
 
     /**
      * Create an engine to sign data with GCP
@@ -37,13 +39,13 @@ public class GcpSignerEngine extends KmsSignerEngine {
      *     href="https://cloud.google.com/java/docs/reference/google-cloud-spanner/latest/com.google.spanner.admin.database.v1.CryptoKeyVersionName">CryptoKeyVersionName</a>
      */
     public GcpSignerEngine(String keyAlias) {
-        super(KmsType.GCP, keyAlias);
+        mKeyAlias = keyAlias;
     }
 
     @Override
     public byte[] sign(byte[] data) {
         try (KeyManagementServiceClient client = KeyManagementServiceClient.create()) {
-            CryptoKeyVersionName cryptoKeyVersionName = CryptoKeyVersionName.parse(this.keyAlias);
+            CryptoKeyVersionName cryptoKeyVersionName = CryptoKeyVersionName.parse(mKeyAlias);
             return client.asymmetricSign(
                             AsymmetricSignRequest.newBuilder()
                                     .setName(cryptoKeyVersionName.toString())
@@ -52,8 +54,7 @@ public class GcpSignerEngine extends KmsSignerEngine {
                     .getSignature()
                     .toByteArray();
         } catch (IOException e) {
-            throw new KmsException(
-                    this.kmsType, "Error initializing KeyManagementServiceClient", e);
+            throw new KmsException(GCP, "Error initializing KeyManagementServiceClient", e);
         }
     }
 }

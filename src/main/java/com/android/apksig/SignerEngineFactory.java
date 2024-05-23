@@ -16,9 +16,11 @@
 
 package com.android.apksig;
 
-import com.android.apksig.kms.KmsSignerEngine;
+import com.android.apksig.kms.KmsException;
+import com.android.apksig.kms.KmsSignerEngineProvider;
 
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.ServiceLoader;
 
 /** Simple util to fetch a signer engine based on provided config values. */
 public class SignerEngineFactory {
@@ -41,6 +43,20 @@ public class SignerEngineFactory {
                 jca ->
                         new JcaSignerEngine(
                                 jca.privateKey, jcaSignatureAlgorithm, algorithmParameterSpec),
-                kms -> KmsSignerEngine.fromKmsConfig(kms, jcaSignatureAlgorithm));
+                kms -> getKmsImplementation(kms, jcaSignatureAlgorithm));
+    }
+
+    private static SignerEngine getKmsImplementation(
+            KeyConfig.Kms keyConfig, String jcaSignatureAlgorithm) {
+        ServiceLoader<KmsSignerEngineProvider> providers =
+                ServiceLoader.load(KmsSignerEngineProvider.class);
+        for (KmsSignerEngineProvider provider : providers) {
+            if (provider.getKmsType() == keyConfig.kmsType) {
+                return provider.getInstance(keyConfig, jcaSignatureAlgorithm);
+            }
+        }
+
+        throw new KmsException(
+                keyConfig.kmsType, "No SignerEngine implementation found on the classpath");
     }
 }
