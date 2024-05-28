@@ -21,14 +21,20 @@ import com.android.apksig.SignerEngine;
 import com.android.apksig.kms.KmsSignerEngineProvider;
 import com.android.apksig.kms.KmsType;
 
+import java.security.spec.AlgorithmParameterSpec;
+
 public class GcpSignerEngineProvider implements KmsSignerEngineProvider {
+
     @Override
-    public SignerEngine getInstance(KeyConfig.Kms kmsConfig, String jcaSignatureAlgorithm) {
+    public SignerEngine getInstance(
+            KeyConfig.Kms kmsConfig,
+            String jcaSignatureAlgorithm,
+            AlgorithmParameterSpec algorithmParameterSpec) {
         return new GcpSignerEngine(kmsConfig.keyAlias);
     }
 
     @Override
-    public KmsType getKmsType() {
+    public String getKmsType() {
         return KmsType.GCP;
     }
 }

@@ -19,10 +19,16 @@ package com.android.apksig.kms;
 import com.android.apksig.KeyConfig;
 import com.android.apksig.SignerEngine;
 
+import java.security.spec.AlgorithmParameterSpec;
+
 public interface KmsSignerEngineProvider {
+
     /** Instantiates a concrete signer engine */
-    SignerEngine getInstance(KeyConfig.Kms kmsConfig, String jcaSignatureAlgorithm);
+    SignerEngine getInstance(
+            KeyConfig.Kms kmsConfig,
+            String jcaSignatureAlgorithm,
+            AlgorithmParameterSpec algorithmParameterSpec);
 
     /** Which KMS provider this engine applies to */
-    KmsType getKmsType();
+    String getKmsType();
 }

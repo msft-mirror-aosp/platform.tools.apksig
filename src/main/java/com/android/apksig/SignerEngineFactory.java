@@ -20,6 +20,7 @@ import com.android.apksig.kms.KmsException;
 import com.android.apksig.kms.KmsSignerEngineProvider;
 
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.Objects;
 import java.util.ServiceLoader;
 
 /** Simple util to fetch a signer engine based on provided config values. */
@@ -43,16 +44,19 @@ public class SignerEngineFactory {
                 jca ->
                         new JcaSignerEngine(
                                 jca.privateKey, jcaSignatureAlgorithm, algorithmParameterSpec),
-                kms -> getKmsImplementation(kms, jcaSignatureAlgorithm));
+                kms -> getKmsImplementation(kms, jcaSignatureAlgorithm, algorithmParameterSpec));
     }
 
     private static SignerEngine getKmsImplementation(
-            KeyConfig.Kms keyConfig, String jcaSignatureAlgorithm) {
+            KeyConfig.Kms keyConfig,
+            String jcaSignatureAlgorithm,
+            AlgorithmParameterSpec algorithmParameterSpec) {
         ServiceLoader<KmsSignerEngineProvider> providers =
                 ServiceLoader.load(KmsSignerEngineProvider.class);
         for (KmsSignerEngineProvider provider : providers) {
-            if (provider.getKmsType() == keyConfig.kmsType) {
-                return provider.getInstance(keyConfig, jcaSignatureAlgorithm);
+            if (Objects.equals(provider.getKmsType(), keyConfig.kmsType)) {
+                return provider.getInstance(
+                        keyConfig, jcaSignatureAlgorithm, algorithmParameterSpec);
             }
         }
 

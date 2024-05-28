@@ -17,7 +17,7 @@
 package com.android.apksig.kms;
 
 /** Represents the supported Key Management Services. */
-public enum KmsType {
-    AWS,
-    GCP,
+public class KmsType {
+    public static String AWS = "aws";
+    public static String GCP = "gcp";
 }
