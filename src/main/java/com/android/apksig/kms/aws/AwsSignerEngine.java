@@ -18,8 +18,8 @@ package com.android.apksig.kms.aws;
 
 import static com.android.apksig.kms.KmsType.AWS;
 
+import com.android.apksig.SignerEngine;
 import com.android.apksig.kms.KmsException;
-import com.android.apksig.kms.KmsSignerEngine;
 
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
@@ -27,12 +27,13 @@ import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.kms.model.SignRequest;
 import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec;
 
-public class AwsSignerEngine extends KmsSignerEngine {
+public class AwsSignerEngine implements SignerEngine {
+    private final String mKeyAlias;
     private static final String ALIAS_PREFIX = "alias/";
     private final SigningAlgorithmSpec mSigningAlgorithmSpec;
 
     public AwsSignerEngine(String keyAlias, String jcaSignatureAlgorithm) {
-        super(AWS, keyAlias);
+        mKeyAlias = keyAlias;
         mSigningAlgorithmSpec = fromJcaSignatureAlgorithm(jcaSignatureAlgorithm);
     }
 
@@ -42,7 +43,7 @@ public class AwsSignerEngine extends KmsSignerEngine {
                 KmsClient.builder().httpClientBuilder(UrlConnectionHttpClient.builder()).build()) {
             return client.sign(
                             SignRequest.builder()
-                                    .keyId(ALIAS_PREFIX + keyAlias)
+                                    .keyId(ALIAS_PREFIX + mKeyAlias)
                                     .signingAlgorithm(mSigningAlgorithmSpec)
                                     .message(SdkBytes.fromByteArray(data))
                                     .build())
