@@ -35,14 +35,10 @@ license {
 
 java_library_host {
     name: "apksig",
-    srcs: [
-        "src/main/java/**/*.java",
-        "src/stub/java/**/*.java",
-    ],
+    srcs: ["src/main/java/**/*.java"],
     exclude_srcs: [
         "src/main/java/com/android/apksig/kms/aws/**/*.java",
         "src/main/java/com/android/apksig/kms/gcp/**/*.java",
-        "src/main/java/com/android/apksig/kms/KmsSignerEngine.java",
     ],
     java_version: "1.8",
     target: {
@@ -53,17 +49,34 @@ java_library_host {
 }
 
 java_library_host {
-    name: "apksig-kms",
+    name: "apksig-kms-provider-aws",
     srcs: [
-        "src/main/java/**/*.java",
+        "src/main/java/com/android/apksig/kms/aws/**/*.java",
     ],
     libs: [
+        "apksig",
         "awssdk-kms",
         "awssdk-url-connection-client",
-        "google-cloud-kms",
-        "libprotobuf-java-util-full",
-        "slf4j-api",
     ],
+    services: ["src/providers/aws/*"],
+    java_version: "1.8",
+    target: {
+        windows: {
+            enabled: true,
+        },
+    },
+}
+
+java_library_host {
+    name: "apksig-kms-provider-gcp",
+    srcs: [
+        "src/main/java/com/android/apksig/kms/gcp/**/*.java",
+    ],
+    libs: [
+        "apksig",
+        "google-cloud-kms",
+    ],
+    services: ["src/providers/gcp/*"],
     java_version: "1.8",
     target: {
         windows: {
@@ -106,7 +119,9 @@ java_binary_host {
     defaults: ["apksigner-defaults"],
     wrapper: "etc/apksigner-kms",
     static_libs: [
-        "apksig-kms",
+        "apksig",
+        "apksig-kms-provider-aws",
+        "apksig-kms-provider-gcp",
         "awssdk-kms",
         "awssdk-url-connection-client",
         "conscrypt-unbundled",
