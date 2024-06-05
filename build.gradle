@@ -1,41 +1,53 @@
 // Generic Gradle project
 
-apply plugin: 'java'
-apply plugin: 'com.google.protobuf'
+apply plugin: 'application'
 
 sourceCompatibility = '1.8'
 
 repositories {
-    jcenter()
+    mavenCentral()
+    google()
 }
 
-buildscript {
-    repositories {
-        jcenter()
+application {
+    mainClassName 'com.android.apksigner.ApkSignerTool'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs 'src/main/java', 'src/apksigner/java'
+        }
+        resources {
+            srcDirs 'src/apksigner/java'
+        }
     }
-    dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.11'
-    }
+}
+
+tasks.register('createTestGoldens', JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.android.apksig.ApkSignerTest'
+    args = ["src/test/resources/com/android/apksig"]
+}
+
+tasks.register('createTestAwsData', JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.android.apksig.kms.aws.AwsTestData'
+}
+
+tasks.register('createTestGcpData', JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.android.apksig.kms.gcp.GcpTestData'
 }
 
 dependencies {
-    implementation 'com.google.protobuf:protobuf-javalite:3.8.0'
+    implementation 'com.google.cloud:google-cloud-kms:2.20.0'
+    implementation 'org.conscrypt:conscrypt-openjdk-uber:2.5.2'
+    implementation 'software.amazon.awssdk:kms:2.23.18'
+    implementation 'software.amazon.awssdk:url-connection-client:2.24.7'
+    testImplementation 'com.google.crypto.tink:tink-android:1.12.0'
+    testImplementation 'com.google.protobuf:protobuf-java-util:3.25.3'
     testImplementation 'junit:junit:4.13'
     testImplementation 'org.bouncycastle:bcprov-jdk15on:1.68'
     testImplementation 'org.conscrypt:conscrypt-openjdk-uber:2.5.1'
-}
-
-protobuf {
-    protoc {
-        artifact = 'com.google.protobuf:protoc:3.8.0'
-    }
-    generateProtoTasks {
-        all().each { task ->
-            task.builtins {
-                java {
-                    option "lite"
-                }
-            }
-        }
-    }
 }
