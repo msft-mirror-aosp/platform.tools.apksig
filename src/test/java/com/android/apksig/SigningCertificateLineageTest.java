@@ -16,11 +16,18 @@
 
 package com.android.apksig;
 
+import static com.android.apksig.internal.util.Resources.FIRST_RSA_1024_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.FIRST_RSA_2048_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.SECOND_RSA_1024_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
+import static com.android.apksig.internal.util.Resources.THIRD_RSA_2048_SIGNER_RESOURCE_NAME;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 
 import com.android.apksig.SigningCertificateLineage.SignerCapabilities;
 import com.android.apksig.SigningCertificateLineage.SignerConfig;
@@ -28,26 +35,26 @@ import com.android.apksig.apk.ApkFormatException;
 import com.android.apksig.internal.apk.ApkSigningBlockUtils;
 import com.android.apksig.internal.apk.v3.V3SchemeConstants;
 import com.android.apksig.internal.apk.v3.V3SchemeSigner;
-import com.android.apksig.internal.util.AndroidSdkVersion;
 import com.android.apksig.internal.util.ByteBufferUtils;
 import com.android.apksig.internal.util.Resources;
 import com.android.apksig.util.DataSource;
 
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.security.cert.X509Certificate;
 import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SigningCertificateLineageTest {
@@ -55,15 +62,6 @@ public class SigningCertificateLineageTest {
     // createLineageWithSignersFromResources and updateLineageWithSignerFromResources will add the
     // SignerConfig for the signers added to the Lineage to this list.
     private List<SignerConfig> mSigners;
-
-    // All signers with the same prefix and an _X suffix were signed with the private key of the
-    // (X-1) signer.
-    private static final String FIRST_RSA_1024_SIGNER_RESOURCE_NAME = "rsa-1024";
-    private static final String SECOND_RSA_1024_SIGNER_RESOURCE_NAME = "rsa-1024_2";
-
-    private static final String FIRST_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048";
-    private static final String SECOND_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048_2";
-    private static final String THIRD_RSA_2048_SIGNER_RESOURCE_NAME = "rsa-2048_3";
 
     @Before
     public void setUp() {
@@ -276,6 +274,10 @@ public class SigningCertificateLineageTest {
         SignerCapabilities newSignerCapabilities = lineage.getSignerCapabilities(newSigner);
         assertExpectedCapabilityValues(newSignerCapabilities, newSignerCapabilityValues);
     }
+
+
+
+
 
     @Test
     public void testRotationWithExitingLineageAndNonDefaultCapabilitiesForNewSigner()
@@ -973,18 +975,18 @@ public class SigningCertificateLineageTest {
 
     /**
      * Verifies the specified {@code SigningCertificateLinage.SignerCapabilities} contains the
-     * expected values from the provided {@code List}. The {@code List} should contain
-     * {@code boolean} values to be verified against the
-     * {@code SigningCertificateLinage.SignerCapabilities} methods in the following order:
+     * expected values from the provided {@code List}. The {@code List} should contain {@code
+     * boolean} values to be verified against the {@code
+     * SigningCertificateLinage.SignerCapabilities} methods in the following order:
      *
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasInstalledData}
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasSharedUid}
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasPermission}
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasRollback}
-     *  {@mcode SigningCertificateLineage.SignerCapabilities.hasAuth}
+     * <p>{@mcode SigningCertificateLineage.SignerCapabilities.hasInstalledData} {@mcode
+     * SigningCertificateLineage.SignerCapabilities.hasSharedUid} {@mcode
+     * SigningCertificateLineage.SignerCapabilities.hasPermission} {@mcode
+     * SigningCertificateLineage.SignerCapabilities.hasRollback} {@mcode
+     * SigningCertificateLineage.SignerCapabilities.hasAuth}
      */
-    private void assertExpectedCapabilityValues(SignerCapabilities capabilities,
-            List<Boolean> expectedCapabilityValues) {
+    private void assertExpectedCapabilityValues(
+            SignerCapabilities capabilities, List<Boolean> expectedCapabilityValues) {
         assertTrue("The expectedCapabilityValues do not contain the expected number of elements",
                 expectedCapabilityValues.size() >= 5);
         assertEquals(
@@ -1016,6 +1018,20 @@ public class SigningCertificateLineageTest {
         mSigners.add(oldSignerConfig);
         SignerConfig newSignerConfig = Resources.toLineageSignerConfig(getClass(),
                 newSignerResourceName);
+        mSigners.add(newSignerConfig);
+        return new SigningCertificateLineage.Builder(oldSignerConfig, newSignerConfig).build();
+    }
+
+    /**
+     * Creates a new {@code SigningCertificateLineage} with the specified signers from the
+     * resources. {@code mSigners} will be updated with the {@code
+     * SigningCertificateLineage.SignerConfig} for each signer added to the lineage.
+     */
+    private SigningCertificateLineage createLineageWithSignersFromResources(
+            SigningCertificateLineage.SignerConfig oldSignerConfig,
+            SigningCertificateLineage.SignerConfig newSignerConfig)
+            throws Exception {
+        mSigners.add(oldSignerConfig);
         mSigners.add(newSignerConfig);
         return new SigningCertificateLineage.Builder(oldSignerConfig, newSignerConfig).build();
     }
@@ -1147,7 +1163,7 @@ public class SigningCertificateLineageTest {
                         resourcePrefix + ".pk8");
         X509Certificate cert = Resources.toCertificate(SigningCertificateLineageTest.class,
                 resourcePrefix + ".x509.pem");
-        return new SignerConfig.Builder(privateKey, cert).build();
+        return new SignerConfig.Builder(new KeyConfig.Jca(privateKey), cert).build();
     }
 
     private static DefaultApkSignerEngine.SignerConfig getApkSignerEngineSignerConfigFromResources(
@@ -1164,7 +1180,9 @@ public class SigningCertificateLineageTest {
         X509Certificate cert = Resources.toCertificate(SigningCertificateLineageTest.class,
                 resourcePrefix + ".x509.pem");
         DefaultApkSignerEngine.SignerConfig.Builder configBuilder =
-                new DefaultApkSignerEngine.SignerConfig.Builder(resourcePrefix, privateKey,
+                new DefaultApkSignerEngine.SignerConfig.Builder(
+                        resourcePrefix,
+                        new KeyConfig.Jca(privateKey),
                         Collections.singletonList(cert));
         if (minSdkVersion > 0) {
             configBuilder.setLineageForMinSdkVersion(lineage, minSdkVersion);

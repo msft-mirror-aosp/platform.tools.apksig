@@ -248,6 +248,12 @@ public class ApkSignerTool {
                 signerParams.setKeystoreProviderArg(
                         optionsParser.getRequiredValue(
                                 "JCA KeyStore Provider constructor argument"));
+            } else if ("kms-type".equals(optionName)) {
+                signerParams.setKmsType(
+                        optionsParser.getRequiredValue("Key Management Service (KMS) type"));
+            } else if ("kms-key-alias".equals(optionName)) {
+                signerParams.setKmsKeyAlias(
+                        optionsParser.getRequiredValue("Key Management Service (KMS) key alias"));
             } else if ("key".equals(optionName)) {
                 signerParams.setKeyFile(optionsParser.getRequiredValue("Private key file"));
             } else if ("cert".equals(optionName)) {
@@ -454,11 +460,17 @@ public class ApkSignerTool {
             } else {
                 v1SigBasename = keyFileName.substring(0, delimiterIndex);
             }
+        } else if (signer.getKmsKeyAlias() != null) {
+            v1SigBasename = signer.getKmsKeyAlias();
         } else {
             throw new RuntimeException("Neither KeyStore key alias nor private key file available");
         }
-        ApkSigner.SignerConfig.Builder signerConfigBuilder = new ApkSigner.SignerConfig.Builder(
-                v1SigBasename, signer.getPrivateKey(), signer.getCerts(), deterministicDsaSigning);
+        ApkSigner.SignerConfig.Builder signerConfigBuilder =
+                new ApkSigner.SignerConfig.Builder(
+                        v1SigBasename,
+                        signer.getKeyConfig(),
+                        signer.getCerts(),
+                        deterministicDsaSigning);
         SigningCertificateLineage lineage = signer.getSigningCertificateLineage();
         int minSdkVersion = signer.getMinSdkVersion();
         if (minSdkVersion > 0) {
@@ -825,7 +837,8 @@ public class ApkSignerTool {
             loadPrivateKeyAndCerts(oldSignerParams, passwordRetriever);
             SigningCertificateLineage.SignerConfig oldSignerConfig =
                     new SigningCertificateLineage.SignerConfig.Builder(
-                            oldSignerParams.getPrivateKey(), oldSignerParams.getCerts().get(0))
+                                    oldSignerParams.getKeyConfig(),
+                                    oldSignerParams.getCerts().get(0))
                             .build();
 
             // TOOD: don't require private key
@@ -833,7 +846,8 @@ public class ApkSignerTool {
             loadPrivateKeyAndCerts(newSignerParams, passwordRetriever);
             SigningCertificateLineage.SignerConfig newSignerConfig =
                     new SigningCertificateLineage.SignerConfig.Builder(
-                            newSignerParams.getPrivateKey(), newSignerParams.getCerts().get(0))
+                                    newSignerParams.getKeyConfig(),
+                                    newSignerParams.getCerts().get(0))
                             .build();
 
             // ok we're all set up, let's rotate!
@@ -923,7 +937,7 @@ public class ApkSignerTool {
                 loadPrivateKeyAndCerts(signerParams, passwordRetriever);
                 SigningCertificateLineage.SignerConfig signerConfig =
                         new SigningCertificateLineage.SignerConfig.Builder(
-                                signerParams.getPrivateKey(), signerParams.getCerts().get(0))
+                                        signerParams.getKeyConfig(), signerParams.getCerts().get(0))
                                 .build();
                 try {
                     // since only the caller specified capabilities will be updated a direct
@@ -1045,6 +1059,10 @@ public class ApkSignerTool {
                 signerParams.setKeystoreProviderArg(
                         optionsParser.getRequiredValue(
                                 "JCA KeyStore Provider constructor argument"));
+            } else if ("kms-type".equals(optionName)) {
+                signerParams.setKmsType(optionsParser.getRequiredValue("KMS Type"));
+            } else if ("kms-key-alias".equals(optionName)) {
+                signerParams.setKmsKeyAlias(optionsParser.getRequiredValue("KMS Key Alias"));
             } else if ("key".equals(optionName)) {
                 signerParams.setKeyFile(optionsParser.getRequiredValue("Private key file"));
             } else if ("cert".equals(optionName)) {
