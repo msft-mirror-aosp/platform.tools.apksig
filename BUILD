@@ -9,7 +9,12 @@ coverage_java_library(
     name = "apksig",
     srcs = glob(
         ["src/main/java/**/*.java"],
-        exclude = ["src/main/java/com/android/apksig/internal/**/*.java"],
+        exclude = [
+            "src/main/java/com/android/apksig/internal/**/*.java",
+            "src/main/java/com/android/apksig/kms/aws/**/*.java",
+            "src/main/java/com/android/apksig/kms/gcp/**/*.java",
+            "src/main/resources/META-INF/services/com.android.apksig.kms.KmsSignerEngineProvider",
+        ],
     ),
     visibility = ["//visibility:public"],
     deps = [":apksig-all"],
@@ -19,7 +24,14 @@ coverage_java_library(
 # API may change without regard to its clients outside of the apksig project.
 coverage_java_library(
     name = "apksig-all",
-    srcs = glob(["src/main/java/**/*.java"]),
+    srcs = glob(
+        ["src/main/java/**/*.java"],
+        exclude = [
+            "src/main/java/com/android/apksig/kms/aws/**/*.java",
+            "src/main/java/com/android/apksig/kms/gcp/**/*.java",
+            "src/main/resources/META-INF/services/com.android.apksig.kms.KmsSignerEngineProvider",
+        ],
+    ),
     visibility = [":apksig-private-api-clients"],
 )
 
@@ -59,9 +71,10 @@ java_binary(
 
 coverage_java_test(
     name = "all",
-    srcs = glob([
-        "src/test/java/com/android/apksig/**/*.java",
-    ]),
+    srcs = glob(
+        ["src/test/java/com/android/apksig/**/*.java"],
+        exclude = ["src/test/java/com/android/apksig/kms/**/*.java"],
+    ),
     jvm_flags = ["-Xmx1024m"],
     resources = glob([
         "src/test/resources/**/*",
