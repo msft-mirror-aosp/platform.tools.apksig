@@ -99,8 +99,8 @@ certificate.
                       library files and all other files will be aligned to 4
                       bytes in the APK.
 
---lib-page-alignment  The number of bytes to be used to page align native library
-                      files in the APK; the default value is 4096.
+--lib-page-alignment  The number of bytes to be used to page align native
+                      library files in the APK; the default value is 16384.
 
 --lineage             Signing certificate history to use in the event that
                       signing certificates changed for an APK using APK
