@@ -35,7 +35,9 @@ import static com.android.apksig.internal.util.Resources.LINEAGE_RSA_2048_3_SIGN
 import static com.android.apksig.internal.util.Resources.LINEAGE_RSA_2048_3_SIGNERS_RESOURCE_NAME;
 import static com.android.apksig.internal.util.Resources.LINEAGE_RSA_2048_TO_RSA_4096_RESOURCE_NAME;
 import static com.android.apksig.internal.util.Resources.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
+// BEGIN-AOSP
 import static com.android.apksig.internal.util.Resources.TEST_GCP_KEY_RING;
+// END-AOSP
 import static com.android.apksig.internal.util.Resources.THIRD_RSA_2048_SIGNER_RESOURCE_NAME;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -66,10 +68,12 @@ import com.android.apksig.internal.x509.RSAPublicKey;
 import com.android.apksig.internal.x509.SubjectPublicKeyInfo;
 import com.android.apksig.internal.zip.CentralDirectoryRecord;
 import com.android.apksig.internal.zip.LocalFileRecord;
+// BEGIN-AOSP
 import com.android.apksig.kms.aws.AwsSignerConfigGenerator;
 import com.android.apksig.kms.aws.KeyAliasClient;
 import com.android.apksig.kms.gcp.GcpSignerConfigGenerator;
 import com.android.apksig.kms.gcp.KeyRingClient;
+// END-AOSP
 import com.android.apksig.util.DataSource;
 import com.android.apksig.util.DataSources;
 import com.android.apksig.zip.ZipFormatException;
@@ -732,6 +736,7 @@ public class ApkSignerTest {
                         .setAlignmentPreserved(true));
     }
 
+    // BEGIN-AOSP
     @Test
     public void testAws_Golden() throws Exception {
         try (KeyAliasClient client = new KeyAliasClient()) {
@@ -881,7 +886,9 @@ public class ApkSignerTest {
                         .setSigningCertificateLineage(lineage)
                         .setAlignmentPreserved(true));
     }
+    // END-AOSP
 
+    // BEGIN-AOSP
     @Test
     public void testGcp_Golden() throws Exception {
         try (KeyRingClient keyRingClient = new KeyRingClient(TEST_GCP_KEY_RING)) {
@@ -1030,6 +1037,7 @@ public class ApkSignerTest {
                         .setSigningCertificateLineage(lineage)
                         .setAlignmentPreserved(true));
     }
+    // END-AOSP
 
     @Test
     public void testMinSdkVersion_Golden() throws Exception {
