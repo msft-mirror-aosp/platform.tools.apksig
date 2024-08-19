@@ -20,7 +20,9 @@ import static com.android.apksig.internal.util.Resources.FIRST_RSA_1024_SIGNER_R
 import static com.android.apksig.internal.util.Resources.FIRST_RSA_2048_SIGNER_RESOURCE_NAME;
 import static com.android.apksig.internal.util.Resources.SECOND_RSA_1024_SIGNER_RESOURCE_NAME;
 import static com.android.apksig.internal.util.Resources.SECOND_RSA_2048_SIGNER_RESOURCE_NAME;
+// BEGIN-AOSP
 import static com.android.apksig.internal.util.Resources.TEST_GCP_KEY_RING;
+// END-AOSP
 import static com.android.apksig.internal.util.Resources.THIRD_RSA_2048_SIGNER_RESOURCE_NAME;
 
 import static org.junit.Assert.assertEquals;
@@ -38,10 +40,12 @@ import com.android.apksig.internal.apk.v3.V3SchemeConstants;
 import com.android.apksig.internal.apk.v3.V3SchemeSigner;
 import com.android.apksig.internal.util.ByteBufferUtils;
 import com.android.apksig.internal.util.Resources;
+// BEGIN-AOSP
 import com.android.apksig.kms.aws.AwsSignerConfigGenerator;
 import com.android.apksig.kms.aws.KeyAliasClient;
 import com.android.apksig.kms.gcp.GcpSignerConfigGenerator;
 import com.android.apksig.kms.gcp.KeyRingClient;
+// END-AOSP
 import com.android.apksig.util.DataSource;
 
 import org.junit.Before;
@@ -280,6 +284,7 @@ public class SigningCertificateLineageTest {
         assertExpectedCapabilityValues(newSignerCapabilities, newSignerCapabilityValues);
     }
 
+    // BEGIN-AOSP
     @Test
     public void
             testRotationWithExitingLineageAndNonDefaultCapabilitiesForNewSigner_previousSignerAws()
@@ -305,7 +310,9 @@ public class SigningCertificateLineageTest {
         SignerCapabilities newSignerCapabilities = lineage.getSignerCapabilities(newSigner);
         assertExpectedCapabilityValues(newSignerCapabilities, newSignerCapabilityValues);
     }
+    // END-AOSP
 
+    // BEGIN-AOSP
     @Test
     public void
             testRotationWithExitingLineageAndNonDefaultCapabilitiesForNewSigner_originalSignerAws()
@@ -331,7 +338,9 @@ public class SigningCertificateLineageTest {
         SignerCapabilities newSignerCapabilities = lineage.getSignerCapabilities(newSigner);
         assertExpectedCapabilityValues(newSignerCapabilities, newSignerCapabilityValues);
     }
+    // END-AOSP
 
+    // BEGIN-AOSP
     @Test
     public void
             testRotationWithExitingLineageAndNonDefaultCapabilitiesForNewSigner_previousSignerGcp()
@@ -357,7 +366,9 @@ public class SigningCertificateLineageTest {
         SignerCapabilities newSignerCapabilities = lineage.getSignerCapabilities(newSigner);
         assertExpectedCapabilityValues(newSignerCapabilities, newSignerCapabilityValues);
     }
+    // END-AOSP
 
+    // BEGIN-AOSP
     @Test
     public void
             testRotationWithExitingLineageAndNonDefaultCapabilitiesForNewSigner_originalSignerGcp()
@@ -383,6 +394,7 @@ public class SigningCertificateLineageTest {
         SignerCapabilities newSignerCapabilities = lineage.getSignerCapabilities(newSigner);
         assertExpectedCapabilityValues(newSignerCapabilities, newSignerCapabilityValues);
     }
+    // END-AOSP
 
     @Test
     public void testRotationWithExitingLineageAndNonDefaultCapabilitiesForNewSigner()
