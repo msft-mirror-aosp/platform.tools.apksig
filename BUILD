@@ -1,8 +1,8 @@
 # Bazel (https://bazel.io/) BUILD file for apksig library and apksigner tool.
 
-licenses(["notice"])  # Apache License 2.0
-
 load("//tools/base/bazel:coverage.bzl", "coverage_java_library", "coverage_java_test")
+
+licenses(["notice"])  # Apache License 2.0
 
 # Public API of the apksig library
 coverage_java_library(
@@ -65,7 +65,6 @@ java_binary(
     deps = [
         ":apksig",
         ":apksig-all",
-        "//tools/base/bazel:langtools",
     ],
 )
 
