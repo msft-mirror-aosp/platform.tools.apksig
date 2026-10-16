@@ -21,9 +21,15 @@ import static org.junit.Assert.assertArrayEquals;
 import com.android.apksig.util.DataSource;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -88,6 +94,49 @@ public class FileChannelDataSourceTest {
         byte[] resultBytes = getDataSinkBytes(dataSink);
 
         assertArrayEquals(expectedBytes, resultBytes);
+    }
+
+    @Test
+    public void testCopyToCorrectData_whenReadConcurrently() throws Exception {
+        byte[] fullFileContent = createFileContent(1024 * 1024);
+        RandomAccessFile raf = createRaf(fullFileContent);
+        DataSource rafDataSource = new FileChannelDataSource(raf.getChannel());
+
+        int chunkSize = 4096;
+        int chunkCount = fullFileContent.length / chunkSize;
+        ByteBuffer result = ByteBuffer.allocate(fullFileContent.length);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        try {
+            List<Future<?>> futures = new ArrayList<>();
+            for (int i = 0; i < chunkCount; i++) {
+                int offset = i * chunkSize;
+                futures.add(
+                        executor.submit(
+                                () -> {
+                                    ByteBuffer chunk = result.duplicate();
+                                    chunk.position(offset);
+                                    rafDataSource.copyTo(offset, chunkSize, chunk);
+                                    return null;
+                                }));
+            }
+            for (Future<?> future : futures) {
+                future.get();
+            }
+        } finally {
+            executor.shutdown();
+        }
+
+        assertArrayEquals(fullFileContent, result.array());
+    }
+
+    @Test(expected = IOException.class)
+    public void testCopyToThrows_whenFileShorterThanSource() throws Exception {
+        byte[] fullFileContent = createFileContent(1000);
+        RandomAccessFile raf = createRaf(fullFileContent);
+        DataSource rafDataSource =
+                new FileChannelDataSource(raf.getChannel(), 0, fullFileContent.length + 10);
+
+        rafDataSource.copyTo(0, fullFileContent.length + 10, ByteBuffer.allocate(2000));
     }
 
     private static byte[] getDataSinkBytes(ByteArrayDataSink dataSink) {
