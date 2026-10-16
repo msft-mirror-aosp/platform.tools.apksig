@@ -16,9 +16,18 @@
 
 package com.android.apksig.util;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -41,6 +50,37 @@ public class DataSourceFromByteBufferTest extends DataSourceTestBase {
         assertFeedEquals("bcd", ds, 0, (int) ds.size());
         assertSliceEquals("bcd", ds, 0, (int) ds.size());
         assertCopyToEquals("bcd", ds, 0, (int) ds.size());
+    }
+
+    @Test
+    public void testGetByteBufferFromMultipleThreads() throws Exception {
+        byte[] contents = new byte[256 * 1024];
+        new Random(1).nextBytes(contents);
+        DataSource ds = DataSources.asDataSource(ByteBuffer.wrap(contents));
+        int chunkSize = 1024;
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        try {
+            List<Future<?>> futures = new ArrayList<>();
+            for (int i = 0; i < contents.length; i += chunkSize) {
+                int offset = i;
+                futures.add(
+                        executor.submit(
+                                () -> {
+                                    byte[] chunk = new byte[chunkSize];
+                                    ds.getByteBuffer(offset, chunkSize).get(chunk);
+                                    assertArrayEquals(
+                                            Arrays.copyOfRange(
+                                                    contents, offset, offset + chunkSize),
+                                            chunk);
+                                    return null;
+                                }));
+            }
+            for (Future<?> future : futures) {
+                future.get();
+            }
+        } finally {
+            executor.shutdown();
+        }
     }
 
     @Override

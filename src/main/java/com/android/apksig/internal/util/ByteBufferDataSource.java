@@ -26,6 +26,11 @@ import java.nio.ByteBuffer;
  */
 public class ByteBufferDataSource implements DataSource {
 
+    /**
+     * To keep {@link #getByteBuffer(long, int)} thread-safe without locking, the state of this
+     * buffer (position, limit, mark) must never be modified after construction. All operations
+     * must be performed on a {@link ByteBuffer#duplicate()}.
+     */
     private final ByteBuffer mBuffer;
     private final int mSize;
 
@@ -59,19 +64,12 @@ public class ByteBufferDataSource implements DataSource {
         int chunkPosition = (int) offset;
         int chunkLimit = chunkPosition + size;
         // Creating a slice of ByteBuffer modifies the state of the source ByteBuffer (position
-        // and limit fields, to be more specific). We thus use synchronization around these
-        // state-changing operations to make instances of this class thread-safe.
-        synchronized (mBuffer) {
-            // ByteBuffer.limit(int) and .position(int) check that that the position >= limit
-            // invariant is not broken. Thus, the only way to safely change position and limit
-            // without caring about their current values is to first set position to 0 or set the
-            // limit to capacity.
-            mBuffer.position(0);
-
-            mBuffer.limit(chunkLimit);
-            mBuffer.position(chunkPosition);
-            return mBuffer.slice();
-        }
+        // and limit fields, to be more specific). We thus modify a duplicate, which shares the
+        // content but not this state, to make instances of this class thread-safe without locking.
+        ByteBuffer buffer = mBuffer.duplicate();
+        buffer.limit(chunkLimit);
+        buffer.position(chunkPosition);
+        return buffer.slice();
     }
 
     @Override
